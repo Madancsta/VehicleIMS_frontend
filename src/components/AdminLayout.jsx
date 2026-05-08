@@ -1,4 +1,3 @@
-// src/components/AdminLayout.jsx
 import React, { useState } from 'react';
 
 const NAV = [
