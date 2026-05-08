@@ -5,11 +5,11 @@ import { AppShell } from "./components/AppShell.jsx";
 // import AdminDashboard from "./pages/AdminDashboard.jsx";
 // import BookingPage from "./pages/BookingPage.jsx";
 // import CustomerDashboard from "./pages/CustomerDashboard.jsx";
-// import CustomerHistory from "./pages/CustomerHistory.jsx";
+import CustomerHistory from "./pages/CustomerHistory.jsx";
 import CustomerRegister from "./pages/CustomerRegister.jsx";
 // import CustomersReport from "./pages/CustomersReport.jsx";
 // import HistoryPage from "./pages/HistoryPage.jsx";
-// import LoginPage from "./pages/LoginPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
 // import PartsPage from "./pages/PartsPage.jsx";
 // import ProfilePage from "./pages/ProfilePage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
@@ -18,19 +18,20 @@ import PurchasesPage from "./pages/PurchasesPage.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 // import StaffDashboard from "./pages/StaffDashboard.jsx";
-// import StaffPage from "./pages/StaffPage.jsx";
+import StaffPage from "./pages/StaffPage.jsx";
 // import VendorsPage from "./pages/VendorsPage.jsx";
+
 
 import "./style.css";
 
 const pages = {
-  // "/": LoginPage,
+ "/": LoginPage,
   // "/admin": AdminDashboard,
   // "/admin/customers-report": CustomersReport,
   // "/admin/parts": PartsPage,
   "/admin/purchases": PurchasesPage,
   // "/admin/reports": ReportsPage,
-  // "/admin/staff": StaffPage,
+  "/admin/staff": StaffPage,
   // "/admin/vendors": VendorsPage,
   // "/customer": CustomerDashboard,
   // "/customer/booking": BookingPage,
