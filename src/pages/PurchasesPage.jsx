@@ -117,4 +117,5 @@ function Detail({ label, value }) {
       <div className="mt-1 font-medium">{value}</div>
     </div>);
 }
+
 export default PurchasesPage;
