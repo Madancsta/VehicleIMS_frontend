@@ -21,6 +21,7 @@ import SearchPage from "./pages/SearchPage.jsx";
 // import StaffDashboard from "./pages/StaffDashboard.jsx";
 import StaffPage from "./pages/StaffPage.jsx";
 import VendorsPage from "./pages/VendorsPage.jsx";
+import CustomerDetails from "./pages/CustomerDetails.jsx";
 
 import "./style.css";
 
@@ -46,6 +47,7 @@ const pages = {
   // "/staff/customers": CustomerHistory,
   "/staff/sales": SalesPage,
   "/staff/search": SearchPage,
+  "/admin/customer-details": CustomerDetails,
 };
 
 function roleByPath(path) {
