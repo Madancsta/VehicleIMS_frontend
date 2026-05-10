@@ -1,5 +1,5 @@
-import { PageHeader } from "../../components/PageHeader";
-import { customers, vehicles, sales } from "../../lib/dummy-data";
+import { PageHeader } from "../components/PageHeader";
+import { customers, vehicles, sales } from "../lib/dummy-data";
 import { useState } from "react";
 import { ChevronRight, Phone, Mail, MapPin, Car } from "lucide-react";
 function CustomerHistory() {
