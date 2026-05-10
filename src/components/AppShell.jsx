@@ -122,9 +122,17 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
   const totalUnread = (summary.lowStockCount || 0) + (summary.unpaidCreditCount || 0);
 
   const handleSignOut = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("roles");
+    [
+      "token",
+      "accessToken",
+      "refreshToken",
+      "roles",
+      "customerId",
+      "userId",
+      "userEmail",
+      "email",
+      "userName",
+    ].forEach((key) => localStorage.removeItem(key));
   };
 
   const sidebarContent = (
