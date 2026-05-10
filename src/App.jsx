@@ -4,15 +4,15 @@ import { AppShell } from "./components/AppShell.jsx";
 
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 // import BookingPage from "./pages/BookingPage.jsx";
-// import BookingRequestReviewPage from "./pages/BookingRequestReviewPage.jsx";
-// import CustomerDashboard from "./pages/CustomerDashboard.jsx";
-// import CustomerHistory from "./pages/CustomerHistory.jsx";
+import BookingRequestReviewPage from "./pages/BookingRequestReviewPage.jsx";
+import CustomerDashboard from "./pages/CustomerDashboard.jsx";
+import CustomerHistory from "./pages/CustomerHistory.jsx";
 import CustomerRegister from "./pages/CustomerRegister.jsx";
-// import CustomersReport from "./pages/CustomersReport.jsx";
+import CustomersReport from "./pages/CustomersReport.jsx";
 // import HistoryPage from "./pages/HistoryPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import PartsPage from "./pages/PartsPage.jsx";
-// import ProfileVehiclePage from "./pages/ProfileVehiclePage.jsx";
+import ProfileVehiclePage from "./pages/ProfileVehiclePage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
 // import RegisterPage from "./pages/RegisterPage.jsx";
 import ReportsPage from "./pages/admin/ReportsPage.jsx";
@@ -27,22 +27,19 @@ import "./style.css";
 const pages = {
   "/": LoginPage,
   "/register": CustomerRegister,
-
   "/admin": AdminDashboard,
-  // "/admin/customers-report": CustomersReport,
+  "/admin/customers-report": CustomersReport,
   "/admin/parts": PartsPage,
   "/admin/purchases": PurchasesPage,
   "/admin/reports": ReportsPage,
   "/admin/staff": StaffPage,
   "/admin/vendors": VendorsPage,
-
-  // "/customer": CustomerDashboard,
-  // "/customer/dashboard": CustomerDashboard,
-  // "/customer/history": CustomerHistory,
-  // "/customer/profile": ProfileVehiclePage,
+  "/customer": CustomerDashboard,
+  "/customer/dashboard": CustomerDashboard,
+  "/customer/history": CustomerHistory,
+  "/customer/profile": ProfileVehiclePage,
   "/customer/register": CustomerRegister,
-  // "/customer/service": BookingRequestReviewPage,
-
+  "/customer/service": BookingRequestReviewPage,
   // "/staff": StaffDashboard,
   "/staff": SalesPage,
   "/staff/customer-register": CustomerRegister,

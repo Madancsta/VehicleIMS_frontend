@@ -5,6 +5,15 @@ export const staff = [
     { id: "S004", name: "Pratha Lama", role: "Admin", email: "pratha@autohub.com", phone: "+977-9834567890", joined: "2024-01-15", status: "Active" },
     { id: "S005", name: "Sita Rai", role: "Staff", email: "pratyush@autohub.com", phone: "+977-9845678901", joined: "2024-08-09", status: "Inactive" },
 ];
+export const partCategories = [
+    { id: 1, name: "Brakes" },
+    { id: 2, name: "Lubricants" },
+    { id: 3, name: "Filters" },
+    { id: 4, name: "Ignition" },
+    { id: 5, name: "Electrical" },
+    { id: 6, name: "Transmission" },
+    { id: 7, name: "Tires" },
+];
 export const parts = [
     { id: "P-1001", name: "Brake Pad — Front", category: "Brakes", brand: "Bosch", stock: 42, lowStock: 10, price: 2400, vendor: "Auto World" },
     { id: "P-1002", name: "Engine Oil 10W-40 (1L)", category: "Lubricants", brand: "Shell", stock: 8, lowStock: 15, price: 850, vendor: "Lube Center" },
