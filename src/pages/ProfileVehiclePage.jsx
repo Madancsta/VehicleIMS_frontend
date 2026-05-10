@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Car, Plus } from "lucide-react";
-import CustomerLayout from "../../components/CustomerLayout";
-import { Field, inputCls, Modal } from "../../components/Modal";
-import { PageHeader } from "../../components/PageHeader";
-import {
-  addVehicle,
-  getCustomerProfile,
-  updateCustomerProfile,
-  updateVehicle,
-} from "../../api/customerApi";
+import CustomerLayout from "../components/CustomerLayout";
+import { Field, inputCls, Modal } from "../components/Modal";
+import { PageHeader } from "../components/PageHeader";
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api"
+).replace(/\/$/, "");
 
 function ProfileVehiclePage() {
   const customerId = localStorage.getItem("customerId");
@@ -84,7 +82,13 @@ function ProfileVehiclePage() {
       setLoading(true);
 
       if (editingVehicle) {
-        await updateVehicle(editingVehicle.vehicleId, payload);
+        const vehicleId = getVehicleId(editingVehicle);
+
+        if (!vehicleId) {
+          throw new Error("Vehicle ID was not found for update.");
+        }
+
+        await updateVehicle(customerId, vehicleId, payload);
       } else {
         await addVehicle(customerId, payload);
       }
@@ -224,7 +228,7 @@ function ProfileVehiclePage() {
             {vehicles.length > 0 ? (
               vehicles.map((vehicle) => (
                 <div
-                  key={vehicle.vehicleId || vehicle.vehicleNumber}
+                  key={getVehicleId(vehicle) || getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber")}
                   className="mb-2 flex items-center gap-4 rounded-md border border-border p-4 last:mb-0"
                 >
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-surface">
@@ -232,10 +236,13 @@ function ProfileVehiclePage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">
-                      {vehicle.brand} {vehicle.model} ({vehicle.year})
+                      {getVehicleValue(vehicle, "brand", "Brand")}{" "}
+                      {getVehicleValue(vehicle, "model", "Model")} (
+                      {getVehicleValue(vehicle, "year", "Year")})
                     </div>
                     <div className="font-mono mt-1 text-xs text-muted-foreground">
-                      {vehicle.vehicleNumber} - {vehicle.color}
+                      {getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber")} -{" "}
+                      {getVehicleValue(vehicle, "color", "Color")}
                     </div>
                   </div>
                   <button
@@ -408,12 +415,26 @@ function toProfileForm(data = {}) {
 
 function toVehicleForm(vehicle = {}) {
   return {
-    vehicleNumber: vehicle.vehicleNumber || "",
-    brand: vehicle.brand || "",
-    model: vehicle.model || "",
-    color: vehicle.color || "",
-    year: vehicle.year || "",
+    vehicleNumber: getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber"),
+    brand: getVehicleValue(vehicle, "brand", "Brand"),
+    model: getVehicleValue(vehicle, "model", "Model"),
+    color: getVehicleValue(vehicle, "color", "Color"),
+    year: getVehicleValue(vehicle, "year", "Year"),
   };
+}
+
+function getVehicleId(vehicle = {}) {
+  return getVehicleValue(vehicle, "vehicleId", "VehicleId", "id", "Id");
+}
+
+function getVehicleValue(vehicle = {}, ...keys) {
+  for (const key of keys) {
+    if (vehicle?.[key] !== undefined && vehicle?.[key] !== null) {
+      return vehicle[key];
+    }
+  }
+
+  return "";
 }
 
 function MessageBox({ message }) {
@@ -422,6 +443,85 @@ function MessageBox({ message }) {
       {message}
     </div>
   );
+}
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: getAuthHeaders(options.headers),
+  });
+  return readApiResponse(res);
+}
+
+function getAuthHeaders(headers = {}) {
+  const accessToken = localStorage.getItem("accessToken");
+
+  return {
+    ...headers,
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+}
+
+async function readApiResponse(res) {
+  const text = await res.text();
+
+  if (!res.ok) {
+    let errorMessage = text || "Request failed.";
+
+    try {
+      const parsed = JSON.parse(text);
+      errorMessage =
+        parsed.message || parsed.Message || parsed.title || errorMessage;
+    } catch {
+      // Plain-text backend errors are already handled above.
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function getCustomerProfile(customerId) {
+  return apiFetch(`/customers/${customerId}/profile`);
+}
+
+function updateCustomerProfile(customerId, data) {
+  return apiFetch(`/customers/${customerId}/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+function addVehicle(customerId, data) {
+  return apiFetch(`/customers/${customerId}/vehicles`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+function updateVehicle(customerId, vehicleId, data) {
+  return apiFetch(`/customers/${customerId}/vehicles/${vehicleId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
 }
 
 export default ProfileVehiclePage;

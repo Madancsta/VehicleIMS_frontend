@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Award, Calendar, Car, History } from "lucide-react";
-import CustomerLayout from "../../components/CustomerLayout";
-import { PageHeader } from "../../components/PageHeader";
-import { getCustomerProfile, getVehicleBookings } from "../../api/customerApi";
+import { Link } from "../components/Link";
+import CustomerLayout from "../components/CustomerLayout";
+import { PageHeader } from "../components/PageHeader";
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api"
+).replace(/\/$/, "");
 
 function CustomerDashboard() {
   const customerId = localStorage.getItem("customerId");
@@ -27,9 +30,7 @@ function CustomerDashboard() {
             .map((vehicleId) => getVehicleBookings(vehicleId)),
         );
         const bookingData = bookingResults.flatMap((result) =>
-          result.status === "fulfilled" && Array.isArray(result.value)
-            ? result.value
-            : [],
+          result.status === "fulfilled" && Array.isArray(result.value) ? result.value : [],
         );
 
         setProfile(profileData);
@@ -46,13 +47,13 @@ function CustomerDashboard() {
   const totalSpent = Number(profile?.totalSpent || 0);
   const vehicles = profile?.vehicles || [];
   const upcomingBookings = bookings.filter(
-    (booking) => (booking.bookingStatus || booking.status) !== "Completed",
+    (booking) =>
+      formatStatus(booking.bookingStatus ?? booking.status) !== "Completed",
   );
   const discountUnlocked = totalSpent > 5000;
-  const pageMessage =
-    !customerId
-      ? "Create a customer account before using the customer portal."
-      : message;
+  const pageMessage = !customerId
+    ? "Create a customer account before using the customer portal."
+    : message;
 
   return (
     <CustomerLayout>
@@ -78,9 +79,7 @@ function CustomerDashboard() {
             <div className="grid-bg absolute inset-0 opacity-20" />
             <div className="relative flex items-center justify-between gap-4">
               <div>
-                <div className="text-xs uppercase tracking-widest opacity-60">
-                  Loyalty Program
-                </div>
+                <div className="text-xs uppercase tracking-widest opacity-60">Loyalty Program</div>
                 <div className="font-display mt-2 text-3xl font-bold">
                   {discountUnlocked
                     ? "10% off eligible purchases"
@@ -104,9 +103,7 @@ function CustomerDashboard() {
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">
                   {label}
                 </div>
-                <div className="font-display mt-2 text-2xl font-bold">
-                  {value}
-                </div>
+                <div className="font-display mt-2 text-2xl font-bold">{value}</div>
               </div>
             ))}
           </div>
@@ -138,18 +135,14 @@ function CustomerDashboard() {
                   className="rounded-lg border border-border bg-card p-6 transition-all hover:border-primary hover:shadow-elegant"
                 >
                   <Icon className="mb-3 h-6 w-6" />
-                  <div className="font-display font-semibold">
-                    {action.label}
-                  </div>
+                  <div className="font-display font-semibold">{action.label}</div>
                 </Link>
               );
             })}
           </div>
 
           <div className="rounded-lg border border-border bg-card p-6">
-            <div className="font-display mb-4 font-semibold">
-              Upcoming Bookings
-            </div>
+            <div className="font-display mb-4 font-semibold">Upcoming Bookings</div>
             {upcomingBookings.length > 0 ? (
               upcomingBookings.slice(0, 2).map((booking) => (
                 <div
@@ -158,23 +151,19 @@ function CustomerDashboard() {
                 >
                   <div>
                     <div className="font-medium">
-                      {booking.serviceDescription ||
-                        booking.service ||
-                        "Service"}
+                      {booking.serviceDescription || booking.service || "Service"}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {booking.bookingDate || booking.date || "Date pending"}
                     </div>
                   </div>
                   <span className="rounded-full bg-warning/20 px-3 py-1 text-xs text-warning-foreground">
-                    {booking.bookingStatus || booking.status || "Pending"}
+                    {formatStatus(booking.bookingStatus ?? booking.status)}
                   </span>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No upcoming bookings yet.
-              </p>
+              <p className="text-sm text-muted-foreground">No upcoming bookings yet.</p>
             )}
           </div>
         </>
@@ -188,9 +177,7 @@ function getDisplayName(profile) {
     return "Customer";
   }
 
-  const fullName = [profile.firstName, profile.lastName]
-    .filter(Boolean)
-    .join(" ");
+  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ");
 
   return fullName || profile.userName || "Customer";
 }
@@ -201,6 +188,79 @@ function MessageBox({ message }) {
       {message}
     </div>
   );
+}
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: getAuthHeaders(options.headers),
+  });
+  return readApiResponse(res);
+}
+
+function getAuthHeaders(headers = {}) {
+  const accessToken = localStorage.getItem("accessToken");
+
+  return {
+    ...headers,
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+}
+
+async function readApiResponse(res) {
+  const text = await res.text();
+
+  if (!res.ok) {
+    let errorMessage = text || "Request failed.";
+
+    try {
+      const parsed = JSON.parse(text);
+      errorMessage =
+        parsed.message || parsed.Message || parsed.title || errorMessage;
+    } catch {
+      // Plain-text backend errors are already handled above.
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function getCustomerProfile(customerId) {
+  return apiFetch(`/customers/${customerId}/profile`);
+}
+
+function getVehicleBookings(vehicleId) {
+  return apiFetch(`/bookings/vehicle/${vehicleId}`);
+}
+
+function formatStatus(value) {
+  const statusLabels = {
+    0: "Pending",
+    1: "Completed",
+    2: "Failed",
+  };
+
+  if (value === "" || value === null || value === undefined) {
+    return "Pending";
+  }
+
+  const numericValue = Number(value);
+
+  if (Number.isInteger(numericValue) && statusLabels[numericValue]) {
+    return statusLabels[numericValue];
+  }
+
+  return String(value);
 }
 
 export default CustomerDashboard;
