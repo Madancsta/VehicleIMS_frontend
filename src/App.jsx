@@ -77,8 +77,18 @@ export default function App() {
     };
   }, []);
 
-  const Page = useMemo(() => pages[path] || pages["/"], [path]);
+  // Check if user is logged in
+  const token = localStorage.getItem("token");
   const role = roleByPath(path);
+  const isProtectedRoute = role !== null && path !== "/" && path !== "/register";
+
+  // Redirect to login if not authenticated
+  if (isProtectedRoute && !token) {
+    window.location.href = "/";
+    return null;
+  }
+
+  const Page = useMemo(() => pages[path] || pages["/"], [path]);
 
   if (role && role !== "customer") {
     return (
