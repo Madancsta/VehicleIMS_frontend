@@ -125,7 +125,7 @@ export default function CustomerLayout({ children }) {
 
       <div className="relative flex min-w-0 flex-1 flex-col">
         {/* Notification + Profile */}
-        <div className="absolute right-4 top-10 z-20 flex items-center gap-2 sm:right-6 sm:gap-3 lg:right-8">
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:gap-3 lg:right-8 lg:top-10">
           <button
             type="button"
             onClick={() => setNotifOpen((open) => !open)}
@@ -158,13 +158,13 @@ export default function CustomerLayout({ children }) {
         <button
           type="button"
           onClick={() => setMobileNavOpen(true)}
-          className="absolute left-4 top-10 z-20 flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface hover:bg-surface/80 lg:hidden"
+          className="absolute left-4 top-4 z-20 flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface hover:bg-surface/80 lg:hidden"
           aria-label="Open menu"
         >
           <Menu className="h-4 w-4" />
         </button>
 
-        <main className="flex-1 overflow-auto px-4 pt-10 pb-4 sm:px-6 sm:pt-10 sm:pb-6 lg:px-8 lg:pt-10 lg:pb-8">
+        <main className="flex-1 overflow-auto px-4 pt-20 pb-4 sm:px-6 sm:pt-20 sm:pb-6 lg:px-8 lg:pt-10 lg:pb-8">
           {children}
         </main>
       </div>

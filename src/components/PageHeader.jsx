@@ -1,6 +1,6 @@
 export function PageHeader({ title, description, actions }) {
   return (
-    <div className="flex flex-col gap-4 border-b border-border mb-6 pb-10 pr-40 sm:flex-row sm:items-start sm:justify-between lg:pr-72">
+    <div className="flex flex-col gap-4 border-b border-border mb-6 pb-10 sm:flex-row sm:items-start sm:justify-between lg:pr-72">
       <div className="min-w-0">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
 
