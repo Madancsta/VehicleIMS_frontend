@@ -1,10 +1,12 @@
 import { PageHeader } from "../components/PageHeader";
 import { sales } from "../lib/dummy-data";
+import CustomerLayout from "../components/CustomerLayout";
 import { Download, Mail } from "lucide-react";
 function HistoryPage() {
     const my = sales.filter(s => s.customerId === "C-2001" || s.customerId === "C-2002");
     const total = my.reduce((s, x) => s + x.total, 0);
-    return (<div>
+    return (<CustomerLayout>
+      <div>
       <PageHeader title="Purchase History" description="All your past invoices and purchases."/>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -39,12 +41,13 @@ function HistoryPage() {
                 <td className="px-6 py-3 text-right">
                   <button className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-background"><Download className="h-3.5 w-3.5"/></button>
                   <button className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-background"><Mail className="h-3.5 w-3.5"/></button>
-                </td>
+                </td> 
               </tr>))}
           </tbody>
         </table>
     </div>
       </div>
-    </div>);
+    </div>
+  </CustomerLayout>);
 }
 export default HistoryPage;
