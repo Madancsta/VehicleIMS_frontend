@@ -216,62 +216,50 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
-        <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-3 sticky top-0 z-30">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={() => setMobileNavOpen(true)}
-              className="lg:hidden h-10 w-10 rounded-md border border-border hover:bg-surface flex items-center justify-center shrink-0"
-              aria-label="Open menu"
-            >
-              <Menu className="h-4 w-4" />
-            </button>
+      <div className="relative flex-1 flex flex-col min-w-0 lg:ml-64">
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          className="absolute left-4 top-4 z-20 flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface hover:bg-surface/80 lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
 
-            <div className="min-w-0">
-              <div className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">
-                {role}
-              </div>
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:gap-3 lg:right-8 lg:top-10">
+          <button
+            type="button"
+            onClick={() => setNotifOpen((v) => !v)}
+            className="relative flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface hover:bg-surface/80"
+            aria-label="Notifications"
+          >
+            <Bell className="h-4 w-4" />
 
-              <div className="font-display font-semibold truncate text-sm sm:text-base">
-                {items.find((i) => i.to === location.pathname)?.label || "Overview"}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3 relative shrink-0">
-            <button
-              onClick={() => setNotifOpen((v) => !v)}
-              className="relative h-10 w-10 rounded-md border border-border hover:bg-surface flex items-center justify-center"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-
-              {totalUnread > 0 && (
-                <span className="absolute top-1 right-1 min-h-4 min-w-4 rounded-full bg-destructive text-[10px] text-white flex items-center justify-center px-1">
-                  {totalUnread}
-                </span>
-              )}
-            </button>
-
-            {notifOpen && (
-              <NotifDropdown
-                onClose={() => setNotifOpen(false)}
-                notifications={notifications}
-                loading={loading}
-              />
+            {totalUnread > 0 && (
+              <span className="absolute right-1 top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] text-white">
+                {totalUnread}
+              </span>
             )}
+          </button>
 
-            <div className="h-10 px-2 sm:px-3 rounded-md bg-surface border border-border flex items-center gap-2">
-              <div className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                {role.charAt(0).toUpperCase()}
-              </div>
+          {notifOpen && (
+            <NotifDropdown
+              onClose={() => setNotifOpen(false)}
+              notifications={notifications}
+              loading={loading}
+            />
+          )}
 
-              <div className="hidden sm:block text-sm font-medium capitalize">{role} User</div>
+          <div className="flex h-10 items-center gap-2 rounded-md border border-border bg-surface px-2 sm:px-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+              {role.charAt(0).toUpperCase()}
             </div>
-          </div>
-        </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">{children}</main>
+            <div className="hidden text-sm font-medium capitalize sm:block">{role} User</div>
+          </div>
+        </div>
+
+        <main className="flex-1 overflow-y-auto px-4 pb-4 pt-20 sm:px-6 sm:pb-6 sm:pt-20 lg:px-8 lg:pb-8 lg:pt-10">{children}</main>
       </div>
     </div>
   );

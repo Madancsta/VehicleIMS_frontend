@@ -154,60 +154,38 @@ function HistoryPage() {
                 </div>
             </div>
 
-            {sales.length === 0 ? (
-                <div className="bg-card border border-border rounded-lg p-12 text-center">
-                    <p className="text-muted-foreground">No purchase history found.</p>
-                </div>
-            ) : (
-                <div className="bg-card border border-border rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto -mx-4 sm:mx-0">
-                        <table className="w-full text-sm">
-                            <thead className="bg-surface text-xs uppercase tracking-wider text-muted-foreground">
-                                <tr>
-                                    <th className="text-left px-6 py-3">Invoice</th>
-                                    <th className="text-left px-6 py-3">Date</th>
-                                    <th className="text-right px-6 py-3">Items</th>
-                                    <th className="text-right px-6 py-3">Total</th>
-                                    <th className="text-right px-6 py-3">Status</th>
-                                    <th className="text-right px-6 py-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sales.map((sale) => (
-                                    <tr key={sale.salesId || sale.id} className="border-t border-border hover:bg-surface">
-                                        <td className="px-6 py-3 font-mono text-xs">#{sale.salesId || sale.id}</td>
-                                        <td className="px-6 py-3 text-muted-foreground">{formatDate(sale.salesDate || sale.date)}</td>
-                                        <td className="px-6 py-3 text-right">{sale.items || sale.itemCount || "-"}</td>
-                                        <td className="px-6 py-3 text-right font-medium">Rs. {(sale.salesAmount || sale.total || 0).toLocaleString()}</td>
-                                        <td className="px-6 py-3 text-right">
-                                            <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(sale.paymentStatus || sale.status)}`}>
-                                                {formatStatus(sale.paymentStatus || sale.status)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3 text-right">
-                                            <button 
-                                                onClick={() => downloadInvoice(sale.salesId || sale.id)}
-                                                className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-background"
-                                                title="Download Invoice"
-                                            >
-                                                <Download className="h-3.5 w-3.5" />
-                                            </button>
-                                            <button 
-                                                className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-background"
-                                                title="View Details"
-                                            >
-                                                <Eye className="h-3.5 w-3.5" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-        </CustomerLayout>
-    );
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+    <table className="w-full text-sm">
+          <thead className="bg-surface text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="text-left px-6 py-3">Invoice</th>
+              <th className="text-left px-6 py-3">Date</th>
+              <th className="text-right px-6 py-3">Items</th>
+              <th className="text-right px-6 py-3">Total</th>
+              <th className="text-right px-6 py-3">Status</th>
+              <th className="text-right px-6 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {my.map(s => (<tr key={s.id} className="border-t border-border hover:bg-surface">
+                <td className="px-6 py-3 font-mono text-xs">{s.id}</td>
+                <td className="px-6 py-3 text-muted-foreground">{s.date}</td>
+                <td className="px-6 py-3 text-right">{s.items}</td>
+                <td className="px-6 py-3 text-right font-medium">Rs. {s.total.toLocaleString()}</td>
+                <td className="px-6 py-3 text-right">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${s.status === "Paid" ? "bg-success/10 text-success" : "bg-warning/20 text-warning-foreground"}`}>{s.status}</span>
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <button className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-background"><Download className="h-3.5 w-3.5"/></button>
+                  <button className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-background"><Mail className="h-3.5 w-3.5"/></button>
+                </td>
+              </tr>))}
+          </tbody>
+        </table>
+    </div>
+      </div>
+    </div>);
 }
 
 export default HistoryPage;
