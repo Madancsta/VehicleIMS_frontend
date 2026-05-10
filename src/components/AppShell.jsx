@@ -21,29 +21,29 @@ import {
 import { useState, useEffect } from "react";
 
 const navByRole = {
-    admin: [
-        { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-        { to: "/admin/staff", label: "Staff", icon: Users },
-        { to: "/admin/parts", label: "Parts", icon: Package },
-        { to: "/admin/vendors", label: "Vendors", icon: Truck },
-        { to: "/admin/purchases", label: "Purchase Invoices", icon: FileText },
-        { to: "/admin/reports", label: "Financial Reports", icon: BarChart3 },
-        { to: "/admin/customers-report", label: "Customer Reports", icon: BarChart3 },
-        { to: "/admin/customer-details", label: "Customer Details", icon: BarChart3 },
-    ],
-    staff: [
-        { to: "/staff", label: "Dashboard", icon: LayoutDashboard },
-        { to: "/staff/sales", label: "Sales / Invoice", icon: ShoppingCart },
-        { to: "/staff/customer-register", label: "Register Customer", icon: UserPlus },
-        { to: "/staff/search", label: "Search", icon: Search },
-        { to: "/staff/customers", label: "Customer History", icon: History },
-    ],
-    customer: [
-        { to: "/customer", label: "Dashboard", icon: LayoutDashboard },
-        { to: "/customer/profile", label: "Profile & Vehicle", icon: User },
-        { to: "/customer/booking", label: "Booking & Reviews", icon: Calendar },
-        { to: "/customer/history", label: "Purchase History", icon: History },
-    ],
+  admin: [
+    { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/admin/staff", label: "Staff", icon: Users },
+    { to: "/admin/parts", label: "Parts", icon: Package },
+    { to: "/admin/vendors", label: "Vendors", icon: Truck },
+    { to: "/admin/purchases", label: "Purchase Invoices", icon: FileText },
+    { to: "/admin/reports", label: "Financial Reports", icon: BarChart3 },
+    { to: "/admin/customers-report", label: "Customer Reports", icon: BarChart3 },
+   { to: "/admin/customer-details", label: "Customer Details", icon: BarChart3 },
+  ],
+  staff: [
+    { to: "/staff", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/staff/sales", label: "Sales / Invoice", icon: ShoppingCart },
+    { to: "/staff/customer-register", label: "Register Customer", icon: UserPlus },
+    { to: "/staff/search", label: "Search", icon: Search },
+    { to: "/staff/customers", label: "Customer History", icon: History },
+  ],
+  customer: [
+    { to: "/customer", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/customer/profile", label: "Profile & Vehicle", icon: User },
+    { to: "/customer/booking", label: "Booking & Reviews", icon: Calendar },
+    { to: "/customer/history", label: "Purchase History", icon: History },
+  ],
 };
 
 export function AppShell({ role, children, currentPath = window.location.pathname }) {
