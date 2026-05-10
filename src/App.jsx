@@ -6,15 +6,15 @@ import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 // import BookingPage from "./pages/BookingPage.jsx";
 import BookingRequestReviewPage from "./pages/BookingRequestReviewPage.jsx";
 import CustomerDashboard from "./pages/CustomerDashboard.jsx";
-import CustomerHistory from "./pages/CustomerHistory.jsx";
+// import CustomerHistory from "./pages/CustomerHistory.jsx";
 import CustomerRegister from "./pages/CustomerRegister.jsx";
 import CustomersReport from "./pages/CustomersReport.jsx";
-// import HistoryPage from "./pages/HistoryPage.jsx";
+import HistoryPage from "./pages/HistoryPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import PartsPage from "./pages/PartsPage.jsx";
 import ProfileVehiclePage from "./pages/ProfileVehiclePage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
-// import RegisterPage from "./pages/RegisterPage.jsx";
+import StaffCustomerRegister from "./pages/StaffCustomerRegister.jsx";
 import ReportsPage from "./pages/admin/ReportsPage.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
@@ -37,13 +37,13 @@ const pages = {
   "/admin/vendors": VendorsPage,
   "/customer": CustomerDashboard,
   "/customer/dashboard": CustomerDashboard,
-  "/customer/history": CustomerHistory,
+  "/customer/history": HistoryPage,
   "/customer/profile": ProfileVehiclePage,
   "/customer/register": CustomerRegister,
   "/customer/service": BookingRequestReviewPage,
   // "/staff": StaffDashboard,
   "/staff": SalesPage,
-  "/staff/customer-register": CustomerRegister,
+  "/staff/customer-register": StaffCustomerRegister,
   // "/staff/customers": CustomerHistory,
   "/staff/sales": SalesPage,
   "/staff/search": SearchPage,
