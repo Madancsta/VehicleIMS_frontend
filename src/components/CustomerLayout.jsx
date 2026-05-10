@@ -1,6 +1,7 @@
 import { Bell, Calendar, History, LayoutDashboard, LogOut, Menu, Wrench, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "./Link";
+import logo from "../assets/gear.png";
 
 const navItems = [
   { label: "Dashboard", path: "/customer/dashboard", icon: LayoutDashboard },
@@ -25,16 +26,32 @@ export default function CustomerLayout({ children }) {
     };
   }, []);
 
+  const handleSignOut = () => {
+    [
+      "token",
+      "accessToken",
+      "refreshToken",
+      "roles",
+      "customerId",
+      "userId",
+      "userEmail",
+      "email",
+      "userName",
+    ].forEach((key) => localStorage.removeItem(key));
+
+    setMobileNavOpen(false);
+  };
+
   const sidebarContent = (
     <>
       <div className="flex items-center justify-between border-b border-sidebar-border px-6 py-6">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-            <Wrench className="h-5 w-5" />
+            <img src={logo} alt="Gearix" className="h-5 w-5" />
           </div>
 
           <div>
-            <div className="font-display text-lg font-bold tracking-tight">VehicleIMS</div>
+            <div className="font-display text-lg font-bold tracking-tight">Gearix</div>
             <div className="text-[10px] uppercase tracking-widest opacity-60">customer panel</div>
           </div>
         </div>
@@ -74,8 +91,8 @@ export default function CustomerLayout({ children }) {
 
       <div className="border-t border-sidebar-border p-3">
         <Link
-          to="/customer/register"
-          onClick={() => setMobileNavOpen(false)}
+          to="/"
+          onClick={handleSignOut}
           className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-sidebar-accent/60"
         >
           <LogOut className="h-4 w-4" />
