@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "./components/AppShell.jsx";
 
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+// import BookingPage from "./pages/BookingPage.jsx";
 import BookingRequestReviewPage from "./pages/BookingRequestReviewPage.jsx";
 import CustomerDashboard from "./pages/CustomerDashboard.jsx";
 import CustomerHistory from "./pages/CustomerHistory.jsx";
@@ -42,7 +43,7 @@ const pages = {
   // "/staff": StaffDashboard,
   "/staff": SalesPage,
   "/staff/customer-register": CustomerRegister,
-  "/staff/customers": CustomerHistory,
+  // "/staff/customers": CustomerHistory,
   "/staff/sales": SalesPage,
   "/staff/search": SearchPage,
 };

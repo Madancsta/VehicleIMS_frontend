@@ -1,9 +1,9 @@
-const BASE_URL = 'https://localhost:7280/api/parts';
+const BASE_URL = 'https://localhost:7280/api/vendor';
 
-export const partsService = {
+export const vendorService = {
   getAll: async () => {
     const res = await fetch(BASE_URL);
-    if (!res.ok) throw new Error('Failed to fetch parts');
+    if (!res.ok) throw new Error('Failed to fetch vendors');
     return res.json();
   },
 
@@ -13,7 +13,7 @@ export const partsService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create part');
+    if (!res.ok) throw new Error('Failed to create vendor');
     return res.json();
   },
 
@@ -23,12 +23,12 @@ export const partsService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to update part');
+    if (!res.ok) throw new Error('Failed to update vendor');
     return res.json();
   },
 
   delete: async (id) => {
     const res = await fetch(`${BASE_URL}/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete part');
+    if (!res.ok) throw new Error('Failed to delete vendor');
   },
 };
