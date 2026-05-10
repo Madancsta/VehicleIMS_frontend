@@ -2,6 +2,11 @@ import { Link } from "../components/Link";
 import loginImage from "../assets/register_image.jpeg";
 import { useState } from "react";
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api").replace(
+    /\/$/,
+    "",
+);
+
 function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -14,7 +19,7 @@ function LoginPage() {
         setLoading(true);
 
         try {
-            const response = await fetch("https://localhost:7280/api/auth/login", {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -28,18 +33,52 @@ function LoginPage() {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("refreshToken", data.refreshToken);
-                localStorage.setItem("userId", data.userId);
-                localStorage.setItem("userEmail", data.email);
-                localStorage.setItem("userName", data.userName);
-                localStorage.setItem("roles", JSON.stringify(data.roles));
+                const accessToken = data.token ?? data.Token ?? data.accessToken ?? data.AccessToken;
+                const refreshToken = data.refreshToken ?? data.RefreshToken;
+                const customerId = data.customerId ?? data.CustomerId;
+                const roles = data.roles ?? data.Roles ?? [];
+
+                if (!accessToken || !refreshToken) {
+                    setError("Login succeeded, but tokens were not returned.");
+                    return;
+                }
+
+                localStorage.setItem("token", accessToken);
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+                localStorage.setItem("roles", JSON.stringify(roles));
+
+                if (data.userId || data.UserId) {
+                    localStorage.setItem("userId", data.userId ?? data.UserId);
+                }
+
+                if (data.email || data.Email) {
+                    localStorage.setItem("userEmail", data.email ?? data.Email);
+                    localStorage.setItem("email", data.email ?? data.Email);
+                }
+
+                if (data.userName || data.UserName) {
+                    localStorage.setItem("userName", data.userName ?? data.UserName);
+                }
+
+                if (customerId) {
+                    localStorage.setItem("customerId", String(customerId));
+                } else {
+                    localStorage.removeItem("customerId");
+                }
 
                 // Redirect based on role
-                if (data.roles.includes("Admin")) {
+                if (roles.includes("Admin")) {
                     window.location.href = "/admin";
-                } else if (data.roles.includes("Staff")) {
+                } else if (roles.includes("Staff")) {
                     window.location.href = "/staff";
+                } else if (roles.includes("Customer")) {
+                    if (!customerId) {
+                        setError("Customer login succeeded, but no customer profile is linked to this account.");
+                        return;
+                    }
+
+                    window.location.href = "/customer/dashboard";
                 } else {
                     window.location.href = "/";
                 }
@@ -47,7 +86,7 @@ function LoginPage() {
                 setError(data.message || "Login failed");
             }
         } catch (err) {
-            setError("Cannot connect to server. Make sure backend is running on port 7280");
+            setError("Cannot connect to server. Make sure backend is running.");
         } finally {
             setLoading(false);
         }

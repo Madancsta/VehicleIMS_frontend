@@ -60,8 +60,8 @@ function BookingRequestReviewPage() {
   const [requestHistoryLoading, setRequestHistoryLoading] = useState(false);
   const [requestHistoryMessage, setRequestHistoryMessage] = useState("");
   const [recentBooking, setRecentBooking] = useState(null);
-  const [reviewSearchSalesId, setReviewSearchSalesId] = useState("");
-  const [reviews, setReviews] = useState([]);
+  const [reviewableSales, setReviewableSales] = useState([]);
+  const [reviewableSalesMessage, setReviewableSalesMessage] = useState("");
 
   const loadCustomerBookings = useCallback(async () => {
     if (!customerId) {
@@ -140,11 +140,39 @@ function BookingRequestReviewPage() {
     }
   }, [customerId]);
 
+  const loadReviewableSales = useCallback(async () => {
+    if (!customerId) {
+      setReviewableSales([]);
+      setReviewableSalesMessage("Create a customer account to review completed services.");
+      return;
+    }
+
+    try {
+      setReviewableSalesMessage("");
+      const data = await getReviewableSales();
+      const salesRows = normalizeReviewableSales(data);
+      setReviewableSales(salesRows);
+
+      setReviewForm((current) => ({
+        ...current,
+        salesId: current.salesId || String(getReviewableSaleId(salesRows[0]) || ""),
+      }));
+
+      if (!salesRows.length) {
+        setReviewableSalesMessage("No completed services are ready for review yet.");
+      }
+    } catch (err) {
+      setReviewableSales([]);
+      setReviewableSalesMessage(err.message || "Unable to load completed services for review.");
+    }
+  }, [customerId]);
+
   useEffect(() => {
     loadCustomerBookings();
     loadParts();
     loadCustomerRequests();
-  }, [loadCustomerBookings, loadParts, loadCustomerRequests]);
+    loadReviewableSales();
+  }, [loadCustomerBookings, loadParts, loadCustomerRequests, loadReviewableSales]);
 
   function handleBookingChange(e) {
     setBookingForm({
@@ -275,29 +303,9 @@ function BookingRequestReviewPage() {
         rating: "5",
         reviewComment: "",
       });
+      await loadReviewableSales();
     } catch (err) {
       setMessage(err.message || "Unable to submit review.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleLoadReviews(e) {
-    e.preventDefault();
-    setMessage("");
-
-    if (!reviewSearchSalesId) {
-      setMessage("Enter sales ID to load reviews.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await getReviewsBySales(reviewSearchSalesId);
-      setReviews(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setMessage(err.message || "Unable to load reviews.");
-      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -586,7 +594,8 @@ function BookingRequestReviewPage() {
                   value={selectedPart?.partId || ""}
                   className={inputClassName}
                   placeholder="Auto-filled"
-                  readOnly
+                  disabled
+                  tabIndex={-1}
                 />
               </Field>
 
@@ -702,16 +711,31 @@ function BookingRequestReviewPage() {
             />
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <Field label="Sales ID">
-                <input
+              <Field label="Completed Service">
+                <select
                   name="salesId"
-                  type="number"
                   value={reviewForm.salesId}
                   onChange={handleReviewChange}
                   className={inputClassName}
-                  placeholder="Enter sales ID"
+                  disabled={!reviewableSales.length}
                   required
-                />
+                >
+                  <option value="">Select completed service</option>
+                  {reviewableSales.map((sale) => {
+                    const saleId = getReviewableSaleId(sale);
+
+                    return (
+                      <option key={saleId} value={saleId}>
+                        {getReviewableSaleLabel(sale)}
+                      </option>
+                    );
+                  })}
+                </select>
+                {reviewableSalesMessage && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {reviewableSalesMessage}
+                  </p>
+                )}
               </Field>
 
               <Field label="Rating">
@@ -744,7 +768,7 @@ function BookingRequestReviewPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !reviewableSales.length}
               className="mt-6 h-11 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? "Saving..." : "Submit Review"}
@@ -754,52 +778,35 @@ function BookingRequestReviewPage() {
           <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
             <SectionTitle
               icon={Star}
-              title="Reviews by Sale"
-              description="Enter a sales ID to view submitted reviews."
+              title="Reviewable Services"
+              description="Only completed services that have not been reviewed are shown."
             />
 
-            <form onSubmit={handleLoadReviews} className="mt-5 flex gap-3">
-              <input
-                type="number"
-                value={reviewSearchSalesId}
-                onChange={(e) => setReviewSearchSalesId(e.target.value)}
-                className={inputClassName}
-                placeholder="Sales ID"
-              />
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="h-11 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-70"
-              >
-                Load
-              </button>
-            </form>
-
             <div className="mt-5 space-y-3">
-              {reviews.length > 0 ? (
-                reviews.map((review) => (
+              {reviewableSales.length > 0 ? (
+                reviewableSales.map((sale) => (
                   <div
-                    key={getValue(review, "reviewId", "ReviewId", "id")}
+                    key={getReviewableSaleId(sale)}
                     className="rounded-lg border border-border bg-background p-4"
                   >
                     <p className="font-medium">
-                      {getValue(review, "rating", "Rating")} Star
-                      {Number(getValue(review, "rating", "Rating")) > 1 ? "s" : ""}
+                      {getValue(sale, "serviceType", "ServiceType") || "Completed service"}
                     </p>
 
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {getValue(review, "reviewComment", "ReviewComment")}
+                      {getValue(sale, "vehicleNumber", "VehicleNumber") || "Vehicle details pending"}
                     </p>
 
                     <p className="mt-3 text-xs text-muted-foreground">
-                      Review #{getValue(review, "reviewId", "ReviewId", "id")} - Sales #
-                      {getValue(review, "salesId", "SalesId")}
+                      Sale #{getReviewableSaleId(sale)} - {formatDate(getValue(sale, "salesDate", "SalesDate"))} -{" "}
+                      {formatCurrency(getValue(sale, "salesAmount", "SalesAmount"))}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">No reviews loaded yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  {reviewableSalesMessage || "No completed services are ready for review yet."}
+                </p>
               )}
             </div>
           </div>
@@ -936,8 +943,8 @@ function createReview(data) {
   });
 }
 
-function getReviewsBySales(salesId) {
-  return apiFetch(`/reviews/sales/${salesId}`);
+function getReviewableSales() {
+  return apiFetch("/reviews/my-reviewable-sales");
 }
 
 function getParts() {
@@ -1025,6 +1032,21 @@ function normalizeParts(data) {
     .filter((part) => Number.isFinite(part.partId) && part.partName);
 }
 
+function normalizeReviewableSales(data) {
+  const rows = Array.isArray(data) ? data : data?.items || data?.sales || data?.$values || [];
+
+  return rows
+    .map((sale) => ({
+      salesId: getValue(sale, "salesId", "SalesId", "id", "Id"),
+      bookingId: getValue(sale, "bookingId", "BookingId"),
+      serviceType: getValue(sale, "serviceType", "ServiceType"),
+      vehicleNumber: getValue(sale, "vehicleNumber", "VehicleNumber"),
+      salesDate: getValue(sale, "salesDate", "SalesDate"),
+      salesAmount: getValue(sale, "salesAmount", "SalesAmount"),
+    }))
+    .filter((sale) => Boolean(getReviewableSaleId(sale)));
+}
+
 function sortBookings(bookingRows) {
   return [...bookingRows].sort((a, b) => {
     const aDate = Date.parse(getValue(a, "bookingDate", "BookingDate")) || 0;
@@ -1050,6 +1072,21 @@ function getVehicleId(vehicle) {
 
 function getBookingId(booking) {
   return getValue(booking, "bookingId", "BookingId", "id", "Id");
+}
+
+function getReviewableSaleId(sale) {
+  return getValue(sale, "salesId", "SalesId", "id", "Id");
+}
+
+function getReviewableSaleLabel(sale) {
+  const saleId = getReviewableSaleId(sale);
+  const service = getValue(sale, "serviceType", "ServiceType") || "Completed service";
+  const vehicleNumber = getValue(sale, "vehicleNumber", "VehicleNumber");
+  const salesDate = formatDate(getValue(sale, "salesDate", "SalesDate"));
+  const salesAmount = formatCurrency(getValue(sale, "salesAmount", "SalesAmount"));
+  const vehicleLabel = vehicleNumber ? ` - ${vehicleNumber}` : "";
+
+  return `Sale #${saleId} - ${service}${vehicleLabel} - ${salesDate} - ${salesAmount}`;
 }
 
 function getBookingVehicleId(booking) {
@@ -1100,6 +1137,20 @@ function formatDate(value) {
     month: "short",
     day: "numeric",
   }).format(date);
+}
+
+function formatCurrency(value) {
+  const amount = Number(value);
+
+  if (!Number.isFinite(amount)) {
+    return "Amount pending";
+  }
+
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: "NPR",
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 function formatTime(value) {
