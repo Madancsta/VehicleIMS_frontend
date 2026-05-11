@@ -139,25 +139,18 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
   const sidebarContent = (
     <>
       <div className="px-6 py-6 border-b border-sidebar-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-md bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center overflow-hidden">
-            <img src={logo} alt="Gearix Logo" className="h-5 w-5 object-contain" />
-          </div>
+  <div className="flex items-center">
+    <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
+  </div>
 
-          <div>
-            <div className="font-display text-lg font-bold tracking-tight">Gearix</div>
-            <div className="text-[10px] uppercase tracking-widest opacity-60">{role} panel</div>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setMobileNavOpen(false)}
-          className="lg:hidden h-8 w-8 rounded-md hover:bg-sidebar-accent/60 flex items-center justify-center"
-          aria-label="Close menu"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+  <button
+    onClick={() => setMobileNavOpen(false)}
+    className="lg:hidden h-8 w-8 rounded-md hover:bg-sidebar-accent/60 flex items-center justify-center"
+    aria-label="Close menu"
+  >
+    <X className="h-4 w-4" />
+  </button>
+</div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {items.map((item) => {
@@ -183,13 +176,13 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
 
       <div className="p-3 border-t border-sidebar-border">
         <Link
-          to="/"
-          onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm hover:bg-sidebar-accent/60"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </Link>
+  to="/"
+  onClick={handleSignOut}
+  className="group flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors hover:!text-red-500"
+>
+  <LogOut className="h-4 w-4 group-hover:text-red-500 transition-colors" />
+  Sign out
+</Link>
       </div>
     </>
   );
