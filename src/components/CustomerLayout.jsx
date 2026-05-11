@@ -1,15 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
-import {
-  Bell,
-  Calendar,
-  History,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Wrench,
-  X,
-} from "lucide-react";
-import { useState } from "react";
+import { Bell, Calendar, History, LayoutDashboard, LogOut, Menu, Wrench, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "./Link";
+import logo from "../assets/gear.png";
 
 const navItems = [
   { label: "Dashboard", path: "/customer/dashboard", icon: LayoutDashboard },
@@ -17,36 +9,53 @@ const navItems = [
   { label: "Purchase History", path: "/customer/history", icon: History },
 ];
 
-const pageTitles = {
-  "/customer/dashboard": "Dashboard",
-  "/customer/profile": "Profile & Vehicle",
-  "/customer/service": "Booking & Reviews",
-  "/customer/history": "Purchase History",
-};
-
 export default function CustomerLayout({ children }) {
-  const location = useLocation();
+  const [path, setPath] = useState(window.location.pathname);
   const [notifOpen, setNotifOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const activeTitle = pageTitles[location.pathname] || "Customer";
+  useEffect(() => {
+    const syncPath = () => setPath(window.location.pathname);
+
+    window.addEventListener("popstate", syncPath);
+    window.addEventListener("app:navigate", syncPath);
+
+    return () => {
+      window.removeEventListener("popstate", syncPath);
+      window.removeEventListener("app:navigate", syncPath);
+    };
+  }, []);
+
+  const handleSignOut = () => {
+    [
+      "token",
+      "accessToken",
+      "refreshToken",
+      "roles",
+      "customerId",
+      "userId",
+      "userEmail",
+      "email",
+      "userName",
+    ].forEach((key) => localStorage.removeItem(key));
+
+    setMobileNavOpen(false);
+  };
 
   const sidebarContent = (
     <>
       <div className="flex items-center justify-between border-b border-sidebar-border px-6 py-6">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-            <Wrench className="h-5 w-5" />
+            <img src={logo} alt="Gearix" className="h-5 w-5" />
           </div>
+
           <div>
-            <div className="font-display text-lg font-bold tracking-tight">
-              VehicleIMS
-            </div>
-            <div className="text-[10px] uppercase tracking-widest opacity-60">
-              customer panel
-            </div>
+            <div className="font-display text-lg font-bold tracking-tight">Gearix</div>
+            <div className="text-[10px] uppercase tracking-widest opacity-60">customer panel</div>
           </div>
         </div>
+
         <button
           type="button"
           onClick={() => setMobileNavOpen(false)}
@@ -60,7 +69,7 @@ export default function CustomerLayout({ children }) {
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const active = location.pathname === item.path;
+          const active = path === item.path;
 
           return (
             <Link
@@ -82,8 +91,8 @@ export default function CustomerLayout({ children }) {
 
       <div className="border-t border-sidebar-border p-3">
         <Link
-          to="/customer/register"
-          onClick={() => setMobileNavOpen(false)}
+          to="/"
+          onClick={handleSignOut}
           className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-sidebar-accent/60"
         >
           <LogOut className="h-4 w-4" />
@@ -107,61 +116,55 @@ export default function CustomerLayout({ children }) {
             className="fixed inset-0 z-40 bg-black/50 lg:hidden"
             onClick={() => setMobileNavOpen(false)}
           />
+
           <aside className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:hidden">
             {sidebarContent}
           </aside>
         </>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMobileNavOpen(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border hover:bg-surface lg:hidden"
-              aria-label="Open menu"
-            >
-              <Menu className="h-4 w-4" />
-            </button>
-            <div className="min-w-0">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                customer
-              </div>
-              <div className="truncate text-sm font-semibold sm:text-base">
-                {activeTitle}
-              </div>
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        {/* Notification + Profile */}
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:gap-3 lg:right-8 lg:top-10">
+          <button
+            type="button"
+            onClick={() => setNotifOpen((open) => !open)}
+            className="relative flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface hover:bg-surface/80"
+            aria-label="Notifications"
+          >
+            <Bell className="h-4 w-4" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
+          </button>
+
+          {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} />}
+
+          <Link
+            to="/customer/profile"
+            className={`flex h-10 items-center gap-2 rounded-md border px-2 transition-colors hover:bg-surface/80 sm:px-3 ${
+              path === "/customer/profile"
+                ? "border-primary bg-surface"
+                : "border-border bg-surface"
+            }`}
+          >
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+              C
             </div>
-          </div>
 
-          <div className="relative flex shrink-0 items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={() => setNotifOpen((open) => !open)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-md border border-border hover:bg-surface"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
-            </button>
-            {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} />}
-            <Link
-              to="/customer/profile"
-              className={`flex h-10 items-center gap-2 rounded-md border px-2 transition-colors hover:bg-surface sm:px-3 ${
-                location.pathname === "/customer/profile"
-                  ? "border-primary bg-surface"
-                  : "border-border bg-surface"
-              }`}
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                C
-              </div>
-              <div className="hidden text-sm font-medium sm:block">Profile</div>
-            </Link>
-          </div>
-        </header>
+            <div className="hidden text-sm font-medium sm:block">Profile</div>
+          </Link>
+        </div>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+        {/* Mobile menu button */}
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          className="absolute left-4 top-4 z-20 flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface hover:bg-surface/80 lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+
+        <main className="flex-1 overflow-auto px-4 pt-20 pb-4 sm:px-6 sm:pt-20 sm:pb-6 lg:px-8 lg:pt-10 lg:pb-8">
           {children}
         </main>
       </div>
@@ -178,10 +181,10 @@ function NotifDropdown({ onClose }) {
         className="fixed inset-0 z-10"
         onClick={onClose}
       />
+
       <div className="absolute right-0 top-12 z-20 w-[calc(100vw-2rem)] max-w-sm rounded-md border border-border bg-card shadow-lg sm:w-80">
-        <div className="border-b border-border p-3 text-sm font-medium">
-          Notifications
-        </div>
+        <div className="border-b border-border p-3 text-sm font-medium">Notifications</div>
+
         <div className="max-h-80 overflow-auto">
           {[
             { text: "Part stock alerts will appear here", time: "System" },
@@ -192,9 +195,8 @@ function NotifDropdown({ onClose }) {
               className="border-b border-border p-3 last:border-0 hover:bg-surface"
             >
               <div className="text-sm">{item.text}</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                {item.time}
-              </div>
+
+              <div className="mt-1 text-xs text-muted-foreground">{item.time}</div>
             </div>
           ))}
         </div>

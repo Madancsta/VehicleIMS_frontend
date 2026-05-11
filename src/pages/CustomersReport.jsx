@@ -1,5 +1,5 @@
-import { PageHeader } from "../../components/PageHeader";
-import { customers } from "../../lib/dummy-data";
+import { PageHeader } from "../components/PageHeader";
+import { customers } from "../lib/dummy-data";
 import { Award, TrendingUp, AlertCircle } from "lucide-react";
 function CustomersReport() {
     const sortedSpend = [...customers].sort((a, b) => b.totalSpent - a.totalSpent);
@@ -81,3 +81,4 @@ function ReportCard({ title, icon: Icon, accent, children }) {
     </div>);
 }
 export default CustomersReport;
+

@@ -1,5 +1,5 @@
-import { PageHeader } from "../../components/PageHeader";
-import { monthlyRevenue, sales, parts, customers, notifications } from "../../lib/dummy-data";
+import { PageHeader } from "../components/PageHeader";
+import { monthlyRevenue, sales, parts, customers, notifications } from "../lib/dummy-data";
 import { TrendingUp, Users, Package, AlertTriangle, DollarSign } from "lucide-react";
 function AdminDashboard() {
     const totalRevenue = sales.reduce((s, x) => s + x.total, 0);
@@ -99,3 +99,4 @@ function AdminDashboard() {
     </div>);
 }
 export default AdminDashboard;
+

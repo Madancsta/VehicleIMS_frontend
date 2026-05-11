@@ -1,5 +1,5 @@
-import { PageHeader } from "../../components/PageHeader";
-import { monthlyRevenue, sales } from "../../lib/dummy-data";
+import { PageHeader } from "../components/PageHeader";
+import { monthlyRevenue, sales } from "../lib/dummy-data";
 import { Download, TrendingUp, TrendingDown } from "lucide-react";
 function ReportsPage() {
     const totalRev = monthlyRevenue.reduce((s, m) => s + m.revenue, 0);
@@ -72,3 +72,4 @@ function ReportsPage() {
     </div>);
 }
 export default ReportsPage;
+

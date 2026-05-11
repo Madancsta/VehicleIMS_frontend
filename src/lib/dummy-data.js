@@ -3,7 +3,16 @@ export const staff = [
     { id: "S002", name: "Madan Thapa", role: "Staff", email: "madan@autohub.com", phone: "+977-9812345678", joined: "2022-11-03", status: "Active" },
     { id: "S003", name: "Anish KC", role: "Admin", email: "anish@autohub.com", phone: "+977-9823456789", joined: "2021-06-21", status: "Active" },
     { id: "S004", name: "Pratha Lama", role: "Admin", email: "pratha@autohub.com", phone: "+977-9834567890", joined: "2024-01-15", status: "Active" },
-    { id: "S005", name: "Sita Rai", role: "Staff", email: "sita@autohub.com", phone: "+977-9845678901", joined: "2024-08-09", status: "Inactive" },
+    { id: "S005", name: "Sita Rai", role: "Staff", email: "pratyush@autohub.com", phone: "+977-9845678901", joined: "2024-08-09", status: "Inactive" },
+];
+export const partCategories = [
+    { id: 1, name: "Brakes" },
+    { id: 2, name: "Lubricants" },
+    { id: 3, name: "Filters" },
+    { id: 4, name: "Ignition" },
+    { id: 5, name: "Electrical" },
+    { id: 6, name: "Transmission" },
+    { id: 7, name: "Tires" },
 ];
 export const parts = [
     { id: "P-1001", name: "Brake Pad — Front", category: "Brakes", brand: "Bosch", stock: 42, lowStock: 10, price: 2400, vendor: "Auto World" },
