@@ -1,6 +1,16 @@
 import { PageHeader } from "../components/PageHeader";
 import { Modal, Field, inputCls } from "../components/Modal";
-import { Plus, Eye, Trash, Printer } from "lucide-react";
+import { 
+  Plus, 
+  Eye, 
+  Trash, 
+  Printer, 
+  Search, 
+  FileText, 
+  TrendingUp, 
+  Users, 
+  CreditCard 
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { purchaseService } from "../services/purchaseService";
 import { vendorService } from "../services/vendorService";
@@ -11,6 +21,7 @@ function PurchasesPage() {
   const [vendors, setVendors] = useState([]);
   const [parts, setParts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [viewing, setViewing] = useState(null);
 
@@ -36,63 +47,109 @@ function PurchasesPage() {
     }
   };
 
+  const filtered = invoices.filter(inv => 
+    `INV-${inv.purchaseId}`.toLowerCase().includes(search.toLowerCase())
+  );
+
   if (loading) return <div className="p-8 text-center">Loading invoices...</div>;
 
   return (
     <div>
-      <PageHeader
-        title="Purchase Invoices"
-        description="Stock purchase records and vendor invoices."
-        actions={
+      {/* Header section with white background extension */}
+      <div className="bg-white -mt-4 sm:-mt-6 lg:-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-0 mb-8">
+        <PageHeader
+          title="Purchase Invoices"
+          description="Stock purchase records and vendor invoices."
+        />
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {[
+          ['Total Invoices', invoices.length, FileText],
+          ['Total Vendors', vendors.length, Users],
+          ['Items Received', invoices.reduce((sum, inv) => sum + (inv.items?.reduce((s, i) => s + i.quantity, 0) ?? 0), 0), TrendingUp],
+          ['Total Spent', `Rs. ${invoices.reduce((s, inv) => s + (inv.totalAmount || 0), 0).toLocaleString()}`, CreditCard],
+        ].map(([label, value, Icon]) => (
+          <div key={label} className="stat-card group transition-all hover:shadow-md border border-border bg-card p-5">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                  {label}
+                </div>
+                <div className="font-display text-2xl font-bold mt-2">
+                  {value}
+                </div>
+              </div>
+              <div className="pt-1">
+                <Icon className="h-6 w-6 text-black" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Content Box */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+        
+        {/* Search and Action Bar */}
+        <div className="p-4 border-b border-border bg-surface/30 flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              placeholder="Search by Invoice ID"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full h-10 pl-10 pr-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
           <button
             onClick={() => setAddOpen(true)}
-            className="px-4 h-10 rounded-md bg-primary text-primary-foreground font-medium flex items-center gap-2 hover:opacity-90"
+            className="px-4 h-10 rounded-md bg-primary text-primary-foreground font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
           >
             <Plus className="h-4 w-4" /> New Invoice
           </button>
-        }
-      />
+        </div>
 
-      {/* Invoices Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
+        {/* Invoices Table */}
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="text-left px-6 py-3">Invoice ID</th>
-                <th className="text-left px-6 py-3">Date</th>
-                <th className="text-right px-6 py-3">Total Units</th>
-                <th className="text-right px-6 py-3">Total</th>
-                <th className="text-right px-6 py-3"></th>
+                <th className="text-left px-6 py-4">Invoice ID</th>
+                <th className="text-left px-6 py-4">Date</th>
+                <th className="text-center px-6 py-4">Quantity</th>
+                <th className="text-right px-6 py-4">Total Amount</th>
+                <th className="text-right px-6 py-4">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.purchaseId} className="border-t border-border hover:bg-surface">
-                  <td className="px-6 py-3 font-mono text-xs">INV-{inv.purchaseId}</td>
-                  <td className="px-6 py-3 text-muted-foreground">
+            <tbody className="divide-y divide-border">
+              {filtered.map((inv) => (
+                <tr key={inv.purchaseId} className="hover:bg-surface/50 transition-colors">
+                  <td className="px-6 py-4 font-mono text-xs font-bold">INV-{inv.purchaseId}</td>
+                  <td className="px-6 py-4 text-muted-foreground">
                     {new Date(inv.purchaseDate).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-3 text-right">
-                    {inv.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0} units
+                  <td className="px-6 py-4 text-center">
+                    {inv.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0}
                   </td>
-                  <td className="px-6 py-3 text-right font-medium">
+                  <td className="px-6 py-4 text-right font-medium">
                     Rs. {inv.totalAmount?.toLocaleString()}
                   </td>
-                  <td className="px-6 py-3 text-right">
+                  <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => setViewing(inv)}
-                      className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-surface"
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-surface hover:text-primary transition-colors"
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Eye className="h-4 w-4" />
                     </button>
                   </td>
                 </tr>
               ))}
-              {invoices.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-muted-foreground">
-                    No invoices yet. Create your first purchase invoice!
+                  <td colSpan={5} className="text-center py-12 text-muted-foreground italic">
+                    No invoices found.
                   </td>
                 </tr>
               )}
@@ -118,7 +175,7 @@ function PurchasesPage() {
         description={`Date: ${viewing ? new Date(viewing.purchaseDate).toLocaleDateString() : ''}`}
         size="lg"
         footer={
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full justify-end">
             <button
               onClick={() => window.print()}
               className="px-4 h-10 rounded-md border border-border text-sm flex items-center gap-2 hover:bg-surface"
@@ -136,10 +193,9 @@ function PurchasesPage() {
       >
         {viewing && (
           <div id="invoice-print">
-            {/* Invoice Header */}
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-xl font-bold">AutoHub</h2>
+                <h2 className="text-xl font-bold">Gearix</h2>
                 <p className="text-sm text-muted-foreground">Vehicle Parts & Services</p>
                 <p className="text-sm text-muted-foreground">Kathmandu, Nepal</p>
               </div>
@@ -154,7 +210,6 @@ function PurchasesPage() {
 
             <hr className="my-4 border-border" />
 
-            {/* Summary */}
             <div className="grid grid-cols-2 gap-4 text-sm mb-6">
               <Detail label="Invoice ID" value={`INV-${viewing.purchaseId}`} />
               <Detail label="Date" value={new Date(viewing.purchaseDate).toLocaleDateString()} />
@@ -165,7 +220,6 @@ function PurchasesPage() {
               <Detail label="Total Amount" value={`Rs. ${viewing.totalAmount?.toLocaleString()}`} />
             </div>
 
-            {/* Line items */}
             <div className="mt-4">
               <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
                 Items
@@ -185,7 +239,7 @@ function PurchasesPage() {
                     <tr key={i} className="border-t border-border">
                       <td className="px-4 py-2">{item.partName}</td>
                       <td className="px-4 py-2 text-muted-foreground">{item.vendorName}</td>
-                      <td className="px-4 py-2 text-right">{item.quantity}</td>
+                      <td className="px-4 py-2 text-center">{item.quantity}</td>
                       <td className="px-4 py-2 text-right">Rs. {item.unitPrice?.toLocaleString()}</td>
                       <td className="px-4 py-2 text-right font-medium">
                         Rs. {item.subTotal?.toLocaleString()}
@@ -201,9 +255,6 @@ function PurchasesPage() {
                 </tbody>
               </table>
             </div>
-
-  
-            
           </div>
         )}
       </Modal>
@@ -285,7 +336,7 @@ function CreateInvoiceModal({ open, onClose, onSaved, vendors, parts }) {
       description="Add items to the invoice then save."
       size="lg"
       footer={
-        <>
+        <div className="flex gap-2 w-full justify-end">
           <button
             onClick={onClose}
             className="px-4 h-10 rounded-md border border-border text-sm hover:bg-surface"
@@ -299,11 +350,10 @@ function CreateInvoiceModal({ open, onClose, onSaved, vendors, parts }) {
           >
             {saving ? 'Saving...' : `Create Invoice (Rs. ${totalAmount.toLocaleString()})`}
           </button>
-        </>
+        </div>
       }
     >
       <div className="space-y-4">
-        {/* Add item form */}
         <div className="p-4 bg-surface rounded-lg space-y-3">
           <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
             Add Item
@@ -358,7 +408,6 @@ function CreateInvoiceModal({ open, onClose, onSaved, vendors, parts }) {
           </button>
         </div>
 
-        {/* Items list */}
         {items.length > 0 && (
           <div>
             <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
