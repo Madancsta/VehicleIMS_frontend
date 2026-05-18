@@ -9,17 +9,65 @@ const navItems = [
   { label: "Purchase History", path: "/customer/history", icon: History },
 ];
 
+const API_BASE_URL = "https://localhost:7280/api";
+
 export default function CustomerLayout({ children }) {
   const [path, setPath] = useState(window.location.pathname);
   const [notifOpen, setNotifOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState({ lowStockCount: 0, unpaidCreditCount: 0 });
+
+  const token = localStorage.getItem("accessToken");
+
+  const fetchNotifications = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/notification/all`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSummary = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/notification/summary`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSummary(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch summary:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    fetchSummary();
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchSummary();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   useEffect(() => {
     const syncPath = () => setPath(window.location.pathname);
-
     window.addEventListener("popstate", syncPath);
     window.addEventListener("app:navigate", syncPath);
-
     return () => {
       window.removeEventListener("popstate", syncPath);
       window.removeEventListener("app:navigate", syncPath);
@@ -38,8 +86,15 @@ export default function CustomerLayout({ children }) {
       "email",
       "userName",
     ].forEach((key) => localStorage.removeItem(key));
-
     setMobileNavOpen(false);
+  };
+
+  const totalUnread = (summary.lowStockCount || 0) + (summary.unpaidCreditCount || 0);
+
+  const getNotificationIcon = (type) => {
+    if (type === "LowStock") return "📦";
+    if (type === "UnpaidCredit") return "💰";
+    return "🔔";
   };
 
   const sidebarContent = (
@@ -49,13 +104,11 @@ export default function CustomerLayout({ children }) {
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
             <img src={logo} alt="Gearix" className="h-5 w-5" />
           </div>
-
           <div>
             <div className="font-display text-lg font-bold tracking-tight">Gearix</div>
             <div className="text-[10px] uppercase tracking-widest opacity-60">customer panel</div>
           </div>
         </div>
-
         <button
           type="button"
           onClick={() => setMobileNavOpen(false)}
@@ -70,7 +123,6 @@ export default function CustomerLayout({ children }) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = path === item.path;
-
           return (
             <Link
               key={item.path}
@@ -116,7 +168,6 @@ export default function CustomerLayout({ children }) {
             className="fixed inset-0 z-40 bg-black/50 lg:hidden"
             onClick={() => setMobileNavOpen(false)}
           />
-
           <aside className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:hidden">
             {sidebarContent}
           </aside>
@@ -133,10 +184,20 @@ export default function CustomerLayout({ children }) {
             aria-label="Notifications"
           >
             <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
+            {totalUnread > 0 && (
+              <span className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs text-white">
+                {totalUnread > 9 ? "9+" : totalUnread}
+              </span>
+            )}
           </button>
 
-          {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} />}
+          {notifOpen && (
+            <NotifDropdown 
+              onClose={() => setNotifOpen(false)} 
+              notifications={notifications}
+              loading={loading}
+            />
+          )}
 
           <Link
             to="/customer/profile"
@@ -149,7 +210,6 @@ export default function CustomerLayout({ children }) {
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               C
             </div>
-
             <div className="hidden text-sm font-medium sm:block">Profile</div>
           </Link>
         </div>
@@ -172,7 +232,13 @@ export default function CustomerLayout({ children }) {
   );
 }
 
-function NotifDropdown({ onClose }) {
+function NotifDropdown({ onClose, notifications, loading }) {
+  const getNotificationIcon = (type) => {
+    if (type === "LowStock") return "📦";
+    if (type === "UnpaidCredit") return "💰";
+    return "🔔";
+  };
+
   return (
     <>
       <button
@@ -181,24 +247,34 @@ function NotifDropdown({ onClose }) {
         className="fixed inset-0 z-10"
         onClick={onClose}
       />
-
       <div className="absolute right-0 top-12 z-20 w-[calc(100vw-2rem)] max-w-sm rounded-md border border-border bg-card shadow-lg sm:w-80">
-        <div className="border-b border-border p-3 text-sm font-medium">Notifications</div>
-
+        <div className="border-b border-border p-3 text-sm font-medium flex justify-between items-center">
+          <span>Notifications</span>
+          {notifications.length > 0 && (
+            <span className="text-xs text-muted-foreground">{notifications.length} total</span>
+          )}
+        </div>
         <div className="max-h-80 overflow-auto">
-          {[
-            { text: "Part stock alerts will appear here", time: "System" },
-            { text: "Credit reminders will appear here", time: "System" },
-          ].map((item) => (
-            <div
-              key={item.text}
-              className="border-b border-border p-3 last:border-0 hover:bg-surface"
-            >
-              <div className="text-sm">{item.text}</div>
-
-              <div className="mt-1 text-xs text-muted-foreground">{item.time}</div>
-            </div>
-          ))}
+          {loading ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
+          ) : notifications.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
+          ) : (
+            notifications.map((n, i) => (
+              <div key={i} className="border-b border-border p-3 last:border-0 hover:bg-surface">
+                <div className="flex items-start gap-2">
+                  <span className="text-lg">{getNotificationIcon(n.type)}</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{n.title}</div>
+                    <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      {n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </>
