@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "./components/AppShell.jsx";
 
-import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
 // import BookingPage from "./pages/BookingPage.jsx";
 import BookingRequestReviewPage from "./pages/BookingRequestReviewPage.jsx";
 import CustomerDashboard from "./pages/CustomerDashboard.jsx";
@@ -15,7 +15,7 @@ import PartsPage from "./pages/PartsPage.jsx";
 import ProfileVehiclePage from "./pages/ProfileVehiclePage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
 import StaffCustomerRegister from "./pages/StaffCustomerRegister.jsx";
-import ReportsPage from "./pages/admin/ReportsPage.jsx";
+import ReportsPage from "./pages/ReportPage.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 // import StaffDashboard from "./pages/StaffDashboard.jsx";
