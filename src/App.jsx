@@ -15,10 +15,10 @@ import PartsPage from "./pages/PartsPage.jsx";
 import ProfileVehiclePage from "./pages/ProfileVehiclePage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
 import ReportPage from "./pages/ReportPage.jsx";
-import StaffDashboardPage from "./pages/SatffDashboard.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import StaffCustomerRegister from "./pages/StaffCustomerRegister.jsx";
+import StaffDashboardPage from "./pages/SatffDashboard.jsx";
 import StaffPage from "./pages/StaffPage.jsx";
 import VendorsPage from "./pages/VendorsPage.jsx";
 
@@ -28,7 +28,6 @@ const pages = {
   "/": LoginPage,
   "/register": CustomerRegister,
 
-  // Admin routes
   "/admin": AdminDashboardPage,
   "/admin/customers-report": CustomersReport,
   "/admin/customer-details": CustomerDetails,
@@ -38,7 +37,6 @@ const pages = {
   "/admin/staff": StaffPage,
   "/admin/vendors": VendorsPage,
 
-  // Customer routes
   "/customer": CustomerDashboard,
   "/customer/dashboard": CustomerDashboard,
   "/customer/history": HistoryPage,
@@ -46,7 +44,6 @@ const pages = {
   "/customer/register": CustomerRegister,
   "/customer/service": BookingRequestReviewPage,
 
-  // Staff routes
   "/staff": StaffDashboardPage,
   "/staff/customer-register": StaffCustomerRegister,
   "/staff/customers": CustomerHistory,
@@ -84,7 +81,6 @@ export default function App() {
   const role = roleByPath(path);
   const isProtectedRoute = role !== null && path !== "/" && path !== "/register";
 
-  // Redirect to login if not authenticated
   if (isProtectedRoute && !token) {
     window.location.href = "/";
     return null;

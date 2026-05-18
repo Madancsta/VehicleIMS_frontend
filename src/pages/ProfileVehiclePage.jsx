@@ -110,8 +110,6 @@ function ProfileVehiclePage() {
   }
 
   const vehicles = profile?.vehicles || [];
-  const totalSpent = Number(profile?.totalSpent || 0);
-  const loyaltyUnlocked = totalSpent > 5000;
 
   return (
     <CustomerLayout>
@@ -122,164 +120,142 @@ function ProfileVehiclePage() {
 
       {message && <MessageBox message={message} />}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <form
-            onSubmit={handleProfileUpdate}
-            className="rounded-lg border border-border bg-card p-6"
-          >
-            <div className="font-display mb-4 font-semibold">
-              Personal Information
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="First name">
-                <input
-                  className={inputCls}
-                  value={profileForm.firstName}
-                  onChange={(event) =>
-                    setProfileForm({
-                      ...profileForm,
-                      firstName: event.target.value,
-                    })
-                  }
-                />
-              </Field>
-              <Field label="Last name">
-                <input
-                  className={inputCls}
-                  value={profileForm.lastName}
-                  onChange={(event) =>
-                    setProfileForm({
-                      ...profileForm,
-                      lastName: event.target.value,
-                    })
-                  }
-                />
-              </Field>
-              <Field label="Username">
-                <input
-                  className={inputCls}
-                  value={profileForm.userName}
-                  onChange={(event) =>
-                    setProfileForm({
-                      ...profileForm,
-                      userName: event.target.value,
-                    })
-                  }
-                />
-              </Field>
-              <Field label="Email">
-                <input
-                  className={`${inputCls} text-muted-foreground`}
-                  value={profile?.email || ""}
-                  disabled
-                />
-              </Field>
-              <Field label="Phone">
-                <input
-                  className={inputCls}
-                  value={profileForm.phoneNumber}
-                  onChange={(event) =>
-                    setProfileForm({
-                      ...profileForm,
-                      phoneNumber: event.target.value,
-                    })
-                  }
-                />
-              </Field>
-              <Field label="Address">
-                <input
-                  className={inputCls}
-                  value={profileForm.address}
-                  onChange={(event) =>
-                    setProfileForm({
-                      ...profileForm,
-                      address: event.target.value,
-                    })
-                  }
-                />
-              </Field>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button
-                type="submit"
-                disabled={loading || !customerId}
-                className="h-10 rounded-md bg-primary px-5 font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {loading ? "Saving..." : "Save changes"}
-              </button>
-            </div>
-          </form>
+      <div className="space-y-6">
+        <form
+          onSubmit={handleProfileUpdate}
+          className="rounded-lg border border-border bg-card p-6"
+        >
+          <div className="font-display mb-4 font-semibold">
+            Personal Information
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="First name">
+              <input
+                className={inputCls}
+                value={profileForm.firstName}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    firstName: event.target.value,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Last name">
+              <input
+                className={inputCls}
+                value={profileForm.lastName}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    lastName: event.target.value,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Username">
+              <input
+                className={inputCls}
+                value={profileForm.userName}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    userName: event.target.value,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Email">
+              <input
+                className={`${inputCls} text-muted-foreground`}
+                value={profile?.email || ""}
+                disabled
+              />
+            </Field>
+            <Field label="Phone">
+              <input
+                className={inputCls}
+                value={profileForm.phoneNumber}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    phoneNumber: event.target.value,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Address">
+              <input
+                className={inputCls}
+                value={profileForm.address}
+                onChange={(event) =>
+                  setProfileForm({
+                    ...profileForm,
+                    address: event.target.value,
+                  })
+                }
+              />
+            </Field>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              type="submit"
+              disabled={loading || !customerId}
+              className="h-10 rounded-md bg-primary px-5 font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {loading ? "Saving..." : "Save changes"}
+            </button>
+          </div>
+        </form>
 
-          <div className="rounded-lg border border-border bg-card p-6">
-            <div className="mb-4 flex items-center justify-between gap-2">
-              <div className="font-display font-semibold">My Vehicles</div>
-              <button
-                type="button"
-                onClick={openAddVehicle}
-                disabled={!customerId}
-                className="flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add Vehicle
-              </button>
-            </div>
+        <div className="rounded-lg border border-border bg-card p-6">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="font-display font-semibold">My Vehicles</div>
+            <button
+              type="button"
+              onClick={openAddVehicle}
+              disabled={!customerId}
+              className="flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Vehicle
+            </button>
+          </div>
 
-            {vehicles.length > 0 ? (
-              vehicles.map((vehicle) => (
-                <div
-                  key={getVehicleId(vehicle) || getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber")}
-                  className="mb-2 flex items-center gap-4 rounded-md border border-border p-4 last:mb-0"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-surface">
-                    <Car className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">
-                      {getVehicleValue(vehicle, "brand", "Brand")}{" "}
-                      {getVehicleValue(vehicle, "model", "Model")} (
-                      {getVehicleValue(vehicle, "year", "Year")})
-                    </div>
-                    <div className="font-mono mt-1 text-xs text-muted-foreground">
-                      {getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber")} -{" "}
-                      {getVehicleValue(vehicle, "color", "Color")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => openEditVehicle(vehicle)}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Edit
-                  </button>
+          {vehicles.length > 0 ? (
+            vehicles.map((vehicle) => (
+              <div
+                key={getVehicleId(vehicle) || getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber")}
+                className="mb-2 flex items-center gap-4 rounded-md border border-border p-4 last:mb-0"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-surface">
+                  <Car className="h-5 w-5" />
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No vehicles registered yet.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="h-fit rounded-lg bg-primary p-6 text-primary-foreground">
-          <div className="text-xs uppercase tracking-widest opacity-60">
-            Account Status
-          </div>
-          <div className="font-display mt-2 text-2xl font-bold">
-            {loyaltyUnlocked ? "Loyalty Member" : "Standard Customer"}
-          </div>
-          <div className="mt-3 text-sm opacity-70">
-            {vehicles.length} vehicle{vehicles.length === 1 ? "" : "s"} linked
-          </div>
-          <div className="mt-6 border-t border-primary-foreground/20 pt-6">
-            <div className="font-display text-3xl font-bold">
-              {loyaltyUnlocked ? "10%" : "0%"}
-            </div>
-            <div className="mt-1 text-xs opacity-60">
-              Discount after spending more than Rs. 5,000 in a purchase
-            </div>
-          </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">
+                    {getVehicleValue(vehicle, "brand", "Brand")}{" "}
+                    {getVehicleValue(vehicle, "model", "Model")} (
+                    {getVehicleValue(vehicle, "year", "Year")})
+                  </div>
+                  <div className="font-mono mt-1 text-xs text-muted-foreground">
+                    {getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber")} -{" "}
+                    {getVehicleValue(vehicle, "color", "Color")}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openEditVehicle(vehicle)}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Edit
+                </button>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No vehicles registered yet.
+            </p>
+          )}
         </div>
       </div>
 
