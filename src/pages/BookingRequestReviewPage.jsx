@@ -2,22 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Calendar, MessageSquare, PackageSearch, RefreshCw, Star } from "lucide-react";
 import CustomerLayout from "../components/CustomerLayout";
 import { PageHeader } from "../components/PageHeader";
-import { parts as dummyParts } from "../lib/dummy-data";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api").replace(
   /\/$/,
   "",
 );
-
-const SERVICE_TYPES = [
-  "Full Service",
-  "Oil Change",
-  "Brake Service",
-  "Engine Diagnostics",
-  "Tire and Wheel Service",
-  "Battery and Electrical",
-  "AC Service",
-];
 
 const inputClassName =
   "h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted-foreground";
@@ -33,10 +22,15 @@ function BookingRequestReviewPage() {
   const [vehicles, setVehicles] = useState([]);
   const [parts, setParts] = useState([]);
   const [partsNotice, setPartsNotice] = useState("");
+  
+  // Services state - loaded from backend
+  const [services, setServices] = useState([]);
+  const [serviceTypes, setServiceTypes] = useState([]);
+  const [serviceTypesLoading, setServiceTypesLoading] = useState(false);
 
   const [bookingForm, setBookingForm] = useState({
     vehicleId: "",
-    serviceType: SERVICE_TYPES[0],
+    serviceType: "",
     bookingDate: "",
     bookingTime: "",
     serviceDescription: "",
@@ -62,6 +56,50 @@ function BookingRequestReviewPage() {
   const [recentBooking, setRecentBooking] = useState(null);
   const [reviewableSales, setReviewableSales] = useState([]);
   const [reviewableSalesMessage, setReviewableSalesMessage] = useState("");
+
+  // Load services from backend
+  const loadServices = useCallback(async () => {
+    try {
+      setServiceTypesLoading(true);
+      const data = await getServices();
+      
+      // Normalize services data
+      let servicesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+      
+      // Extract unique service types from the services
+      const uniqueServiceTypes = [...new Set(servicesList.map(service => service.serviceType))];
+      
+      setServices(servicesList);
+      setServiceTypes(uniqueServiceTypes);
+      
+      // Set default service type if available
+      if (uniqueServiceTypes.length > 0 && !bookingForm.serviceType) {
+        setBookingForm(prev => ({
+          ...prev,
+          serviceType: uniqueServiceTypes[0]
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to load services:", error);
+      // Fallback to default service types if backend fails
+      const fallbackTypes = [
+        "Full Service",
+        "Oil Change",
+        "Brake Service",
+        "Engine Diagnostics",
+        "Tire and Wheel Service",
+        "Battery and Electrical",
+        "AC Service",
+      ];
+      setServiceTypes(fallbackTypes);
+      setBookingForm(prev => ({
+        ...prev,
+        serviceType: prev.serviceType || fallbackTypes[0]
+      }));
+    } finally {
+      setServiceTypesLoading(false);
+    }
+  }, []);
 
   const loadCustomerBookings = useCallback(async () => {
     if (!customerId) {
@@ -94,27 +132,15 @@ function BookingRequestReviewPage() {
   }, [customerId]);
 
   const loadParts = useCallback(async () => {
-    const demoParts = normalizeParts(dummyParts);
-
     try {
       const data = await getParts();
       const normalizedParts = normalizeParts(data);
-
-      if (!normalizedParts.length) {
-        setParts(demoParts);
-        setPartsNotice(
-          "No backend parts found. Showing demo parts from dummy data.",
-        );
-        return;
-      }
-
       setParts(normalizedParts);
       setPartsNotice("");
-    } catch {
-      setParts(demoParts);
-      setPartsNotice(
-        "Could not load backend parts. Showing demo parts from dummy data.",
-      );
+    } catch (error) {
+      console.error("Failed to load parts:", error);
+      setParts([]);
+      setPartsNotice("Could not load parts. Please try again later.");
     }
   }, []);
 
@@ -168,11 +194,12 @@ function BookingRequestReviewPage() {
   }, [customerId]);
 
   useEffect(() => {
+    loadServices();
     loadCustomerBookings();
     loadParts();
     loadCustomerRequests();
     loadReviewableSales();
-  }, [loadCustomerBookings, loadParts, loadCustomerRequests, loadReviewableSales]);
+  }, [loadServices, loadCustomerBookings, loadParts, loadCustomerRequests, loadReviewableSales]);
 
   function handleBookingChange(e) {
     setBookingForm({
@@ -241,7 +268,7 @@ function BookingRequestReviewPage() {
 
       setBookingForm((current) => ({
         ...current,
-        serviceType: SERVICE_TYPES[0],
+        serviceType: serviceTypes[0] || "",
         bookingDate: "",
         bookingTime: "",
         serviceDescription: "",
@@ -390,13 +417,18 @@ function BookingRequestReviewPage() {
                   onChange={handleBookingChange}
                   className={inputClassName}
                   required
+                  disabled={serviceTypesLoading}
                 >
-                  {SERVICE_TYPES.map((serviceType) => (
+                  <option value="">Select Service Type</option>
+                  {serviceTypes.map((serviceType) => (
                     <option key={serviceType} value={serviceType}>
                       {serviceType}
                     </option>
                   ))}
                 </select>
+                {serviceTypesLoading && (
+                  <p className="mt-2 text-xs text-muted-foreground">Loading service types...</p>
+                )}
               </Field>
 
               <Field label="Booking Date">
@@ -435,7 +467,7 @@ function BookingRequestReviewPage() {
 
             <button
               type="submit"
-              disabled={loading || pageLoading || !vehicles.length}
+              disabled={loading || pageLoading || !vehicles.length || !serviceTypes.length}
               className="mt-6 h-11 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? "Saving..." : "Create Booking"}
@@ -511,7 +543,7 @@ function BookingRequestReviewPage() {
                         </span>
                       </div>
 
-                    <p className="mt-3 text-sm text-foreground">
+                      <p className="mt-3 text-sm text-foreground">
                         {getBookingServiceLabel(booking)}
                       </p>
 
@@ -530,8 +562,10 @@ function BookingRequestReviewPage() {
         </div>
       )}
 
+      {/* Part Request Tab - Keep as is */}
       {activeTab === "request" && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.95fr]">
+          {/* Request form content - same as before */}
           <form
             onSubmit={handleRequestSubmit}
             className="rounded-lg border border-border bg-card p-6 shadow-elegant"
@@ -698,6 +732,7 @@ function BookingRequestReviewPage() {
         </div>
       )}
 
+      {/* Review Tab - Keep as is */}
       {activeTab === "review" && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.95fr]">
           <form
@@ -816,6 +851,7 @@ function BookingRequestReviewPage() {
   );
 }
 
+// Helper components (TabButton, SectionTitle, Field remain the same)
 function TabButton({ active, icon: Icon, label, onClick }) {
   return (
     <button
@@ -857,6 +893,7 @@ function Field({ label, children, className = "" }) {
   );
 }
 
+// API Functions
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -899,6 +936,11 @@ async function readApiResponse(res) {
   } catch {
     return text;
   }
+}
+
+// New API function to get services
+function getServices() {
+  return apiFetch("/services");
 }
 
 function getCustomerProfile(customerId) {
@@ -974,6 +1016,23 @@ async function fetchBookingsForVehicles(profileVehicles) {
   return sortBookings(bookingRows);
 }
 
+// Helper functions (normalizeParts, normalizePartRequests, normalizeReviewableSales, etc. remain the same)
+function normalizeParts(data) {
+  const rows = Array.isArray(data) ? data : data?.items || data?.parts || data?.$values || [];
+
+  return rows
+    .map((part, index) => {
+      const rawPartId = Number(getValue(part, "partId", "PartId", "id", "Id"));
+
+      return {
+        partId: Number.isFinite(rawPartId) && rawPartId > 0 ? rawPartId : index + 1,
+        partName: getValue(part, "partName", "PartName", "name", "Name"),
+        category: getValue(part, "category", "Category", "categoryName", "CategoryName"),
+      };
+    })
+    .filter((part) => Number.isFinite(part.partId) && part.partName);
+}
+
 function normalizePartRequests(data) {
   const rows = Array.isArray(data) ? data : data?.items || data?.requests || data?.$values || [];
 
@@ -1014,22 +1073,6 @@ function normalizePartRequests(data) {
       description: getValue(part, "requestDescription", "RequestDescription"),
     }));
   });
-}
-
-function normalizeParts(data) {
-  const rows = Array.isArray(data) ? data : data?.items || data?.parts || data?.$values || [];
-
-  return rows
-    .map((part, index) => {
-      const rawPartId = Number(getValue(part, "partId", "PartId", "id", "Id"));
-
-      return {
-        partId: Number.isFinite(rawPartId) && rawPartId > 0 ? rawPartId : index + 1,
-        partName: getValue(part, "partName", "PartName", "name", "Name"),
-        category: getValue(part, "category", "Category", "categoryName", "CategoryName"),
-      };
-    })
-    .filter((part) => Number.isFinite(part.partId) && part.partName);
 }
 
 function normalizeReviewableSales(data) {

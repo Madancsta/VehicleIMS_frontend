@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "./components/AppShell.jsx";
 
+import AdminDashboardPage from "./pages/AdminDashboard.jsx";
 import BookingRequestReviewPage from "./pages/BookingRequestReviewPage.jsx";
 import CustomerDashboard from "./pages/CustomerDashboard.jsx";
 import CustomerDetails from "./pages/CustomerDetails.jsx";
@@ -14,6 +15,7 @@ import PartsPage from "./pages/PartsPage.jsx";
 import ProfileVehiclePage from "./pages/ProfileVehiclePage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
 import ReportPage from "./pages/ReportPage.jsx";
+import StaffDashboardPage from "./pages/SatffDashboard.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import StaffCustomerRegister from "./pages/StaffCustomerRegister.jsx";
@@ -27,7 +29,7 @@ const pages = {
   "/register": CustomerRegister,
 
   // Admin routes
-  "/admin": CustomersReport,
+  "/admin": AdminDashboardPage,
   "/admin/customers-report": CustomersReport,
   "/admin/customer-details": CustomerDetails,
   "/admin/parts": PartsPage,
@@ -45,7 +47,7 @@ const pages = {
   "/customer/service": BookingRequestReviewPage,
 
   // Staff routes
-  "/staff": SalesPage,
+  "/staff": StaffDashboardPage,
   "/staff/customer-register": StaffCustomerRegister,
   "/staff/customers": CustomerHistory,
   "/staff/sales": SalesPage,
