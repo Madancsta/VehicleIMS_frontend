@@ -8,206 +8,201 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:522
 );
 
 function SalesPage() {
-    const [items, setItems] = useState([]);
-    const [customers, setCustomers] = useState([]);
-    const [parts, setParts] = useState([]);
-    const [services, setServices] = useState([]);
-    const [vehicles, setVehicles] = useState([]);
-    const [bookings, setBookings] = useState([]);
-    const [selectedCustomerId, setSelectedCustomerId] = useState("");
-    const [selectedServiceId, setSelectedServiceId] = useState("");
-    const [selectedVehicleId, setSelectedVehicleId] = useState("");
-    const [selectedBookingId, setSelectedBookingId] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("Cash");
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState("");
-    const [lastSale, setLastSale] = useState(null);
-    const [pageLoading, setPageLoading] = useState(true);
-    
-    // Fetch data on mount
-    useEffect(() => {
-        const loadInitialData = async () => {
-            setPageLoading(true);
-            await Promise.all([
-                loadCustomers(),
-                loadParts(),
-                loadServices()
-            ]);
-            setPageLoading(false);
-        };
-        
-        loadInitialData();
-    }, []);
-    
-    // Load bookings and vehicles when customer changes
-    useEffect(() => {
-        if (selectedCustomerId) {
-            loadBookingsByCustomer(selectedCustomerId);
-            loadVehicles(selectedCustomerId);
-        } else {
-            setBookings([]);
-            setVehicles([]);
-        }
-    }, [selectedCustomerId]);
-    
-    const loadCustomers = useCallback(async () => {
-        try {
-            const data = await getCustomers();
-            const customersList = Array.isArray(data) ? data : data?.items || data?.$values || [];
-            setCustomers(customersList);
-            return customersList;
-        } catch (error) {
-            console.error("Failed to load customers:", error);
-            setMessage("Could not load customers. Please refresh the page.");
-            return [];
-        }
-    }, []);
-    
-    const loadParts = useCallback(async () => {
-        try {
-            const data = await getParts();
-            const partsList = Array.isArray(data) ? data : data?.items || data?.$values || [];
-            setParts(partsList);
-            return partsList;
-        } catch (error) {
-            console.error("Failed to load parts:", error);
-            setMessage("Could not load parts. Please refresh the page.");
-            return [];
-        }
-    }, []);
-    
-    const loadServices = useCallback(async () => {
-        try {
-            const data = await getServices();
-            const servicesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
-            setServices(servicesList);
-            return servicesList;
-        } catch (error) {
-            console.error("Failed to load services:", error);
-            return [];
-        }
-    }, []);
-    
-    const loadVehicles = useCallback(async (customerId) => {
-        if (!customerId) {
-            setVehicles([]);
-            return;
-        }
-        
-        try {
-            const data = await getVehicles(customerId);
-            const vehiclesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
-            setVehicles(vehiclesList);
-        } catch (error) {
-            console.error("Failed to load vehicles:", error);
-            setVehicles([]);
-        }
-    }, []);
-    
-    const loadBookingsByCustomer = useCallback(async (customerId) => {
-        if (!customerId) {
-            setBookings([]);
-            return;
-        }
-        
-        try {
-            const data = await getBookingsByCustomer(customerId);
-            const bookingsList = Array.isArray(data) ? data : data?.items || data?.$values || [];
-            setBookings(bookingsList);
-        } catch (error) {
-            console.error("Failed to load bookings:", error);
-            setBookings([]);
-        }
-    }, []);
-    
-    const partsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    
-    // Get selected service details
-    const selectedService = services.find(s => s.serviceId === parseInt(selectedServiceId));
-    const serviceCharge = selectedService?.serviceCharge || 0;
-    
-    const subtotal = partsTotal + serviceCharge;
-    const discount = Math.round(subtotal * 0.1);
-    const total = subtotal - discount;
-    
-    const handleCompleteSale = async () => {
-        if (!selectedCustomerId) {
-            alert("Please select a customer");
-            return;
-        }
-        
-        if (items.length === 0 && !selectedServiceId) {
-            alert("Please add at least one part or select a service");
-            return;
-        }
-        
-        setLoading(true);
-        setMessage("");
-        
-        try {
-            const payload = {
-                customerId: parseInt(selectedCustomerId),
-                serviceId: selectedServiceId ? parseInt(selectedServiceId) : null,
-                vehicleId: selectedVehicleId ? parseInt(selectedVehicleId) : null,
-                bookingId: selectedBookingId ? parseInt(selectedBookingId) : null,
-                items: items.map(item => ({
-                    partId: parseInt(item.partId),
-                    quantity: item.quantity
-                })),
-                paymentMethod: paymentMethod.toLowerCase()
-            };
-            
-            console.log("Sending payload:", payload);
-            
-            const result = await createSale(payload);
-            setLastSale(result);
-            setMessage(`Sale completed successfully! Invoice #${result.invoiceNumber}`);
-            
-            // Reset form after successful sale
-            setItems([]);
-            setSelectedServiceId("");
-            setSelectedVehicleId("");
-            setSelectedBookingId("");
-            setSelectedCustomerId("");
-            
-        } catch (err) {
-            console.error("Sale error:", err);
-            setMessage(err.message || "Unable to create sale.");
-        } finally {
-            setLoading(false);
-        }
+  const [items, setItems] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [parts, setParts] = useState([]);
+  const [services, setServices] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [selectedBookingId, setSelectedBookingId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [lastSale, setLastSale] = useState(null);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // Fetch data on mount
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setPageLoading(true);
+      await Promise.all([loadCustomers(), loadParts(), loadServices()]);
+      setPageLoading(false);
     };
-    
-    const handleSendInvoiceEmail = async () => {
-        if (!lastSale?.salesId) {
-            alert("Please complete a sale first before sending invoice.");
-            return;
-        }
-        
-        const customer = customers.find(c => c.customerId === parseInt(selectedCustomerId));
-        if (!customer?.email) {
-            alert("Customer does not have an email address.");
-            return;
-        }
-        
-        try {
-            await sendInvoiceEmail(lastSale.salesId, customer.email);
-            alert(`Invoice sent successfully to ${customer.email}`);
-        } catch (err) {
-            alert(err.message || "Failed to send invoice email.");
-        }
-    };
-    
-    const handlePrint = async () => {
-        if (!lastSale?.salesId) {
-            alert("Please complete a sale first before printing invoice.");
-            return;
-        }
-        
-        try {
-            const invoice = await getInvoice(lastSale.salesId);
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
+
+    loadInitialData();
+  }, []);
+
+  // Load bookings and vehicles when customer changes
+  useEffect(() => {
+    if (selectedCustomerId) {
+      loadBookingsByCustomer(selectedCustomerId);
+      loadVehicles(selectedCustomerId);
+    } else {
+      setBookings([]);
+      setVehicles([]);
+    }
+  }, [selectedCustomerId]);
+
+  const loadCustomers = useCallback(async () => {
+    try {
+      const data = await getCustomers();
+      const customersList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+      setCustomers(customersList);
+      return customersList;
+    } catch (error) {
+      console.error("Failed to load customers:", error);
+      setMessage("Could not load customers. Please refresh the page.");
+      return [];
+    }
+  }, []);
+
+  const loadParts = useCallback(async () => {
+    try {
+      const data = await getParts();
+      const partsList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+      setParts(partsList);
+      return partsList;
+    } catch (error) {
+      console.error("Failed to load parts:", error);
+      setMessage("Could not load parts. Please refresh the page.");
+      return [];
+    }
+  }, []);
+
+  const loadServices = useCallback(async () => {
+    try {
+      const data = await getServices();
+      const servicesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+      setServices(servicesList);
+      return servicesList;
+    } catch (error) {
+      console.error("Failed to load services:", error);
+      return [];
+    }
+  }, []);
+
+  const loadVehicles = useCallback(async (customerId) => {
+    if (!customerId) {
+      setVehicles([]);
+      return;
+    }
+
+    try {
+      const data = await getVehicles(customerId);
+      const vehiclesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+      setVehicles(vehiclesList);
+    } catch (error) {
+      console.error("Failed to load vehicles:", error);
+      setVehicles([]);
+    }
+  }, []);
+
+  const loadBookingsByCustomer = useCallback(async (customerId) => {
+    if (!customerId) {
+      setBookings([]);
+      return;
+    }
+
+    try {
+      const data = await getBookingsByCustomer(customerId);
+      const bookingsList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+      setBookings(bookingsList);
+    } catch (error) {
+      console.error("Failed to load bookings:", error);
+      setBookings([]);
+    }
+  }, []);
+
+  const partsTotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+  // Get selected service details
+  const selectedService = services.find((s) => s.serviceId === parseInt(selectedServiceId));
+  const serviceCharge = selectedService?.serviceCharge || 0;
+
+  const subtotal = partsTotal + serviceCharge;
+  const discount = subtotal > 5000 ? Math.round(subtotal * 0.1) : 0;
+  const total = subtotal - discount;
+
+  const handleCompleteSale = async () => {
+    if (!selectedCustomerId) {
+      alert("Please select a customer");
+      return;
+    }
+
+    if (items.length === 0 && !selectedServiceId) {
+      alert("Please add at least one part or select a service");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const payload = {
+        customerId: parseInt(selectedCustomerId),
+        serviceId: selectedServiceId ? parseInt(selectedServiceId) : null,
+        vehicleId: selectedVehicleId ? parseInt(selectedVehicleId) : null,
+        bookingId: selectedBookingId ? parseInt(selectedBookingId) : null,
+        items: items.map((item) => ({
+          partId: parseInt(item.partId),
+          quantity: item.quantity,
+        })),
+        paymentMethod: paymentMethod.toLowerCase(),
+      };
+
+      console.log("Sending payload:", payload);
+
+      const result = await createSale(payload);
+      setLastSale(result);
+      setMessage(`Sale completed successfully! Invoice #${result.invoiceNumber}`);
+
+      // Reset form after successful sale
+      setItems([]);
+      setSelectedServiceId("");
+      setSelectedVehicleId("");
+      setSelectedBookingId("");
+      setSelectedCustomerId("");
+    } catch (err) {
+      console.error("Sale error:", err);
+      setMessage(err.message || "Unable to create sale.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendInvoiceEmail = async () => {
+    if (!lastSale?.salesId) {
+      alert("Please complete a sale first before sending invoice.");
+      return;
+    }
+
+    const customer = customers.find((c) => c.customerId === parseInt(selectedCustomerId));
+    if (!customer?.email) {
+      alert("Customer does not have an email address.");
+      return;
+    }
+
+    try {
+      await sendInvoiceEmail(lastSale.salesId, customer.email);
+      alert(`Invoice sent successfully to ${customer.email}`);
+    } catch (err) {
+      alert(err.message || "Failed to send invoice email.");
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!lastSale?.salesId) {
+      alert("Please complete a sale first before printing invoice.");
+      return;
+    }
+
+    try {
+      const invoice = await getInvoice(lastSale.salesId);
+      const printWindow = window.open("", "_blank");
+      printWindow.document.write(`
                 <html>
                     <head>
                         <title>Invoice #${invoice.invoiceNumber}</title>
@@ -236,19 +231,23 @@ function SalesPage() {
                                 <tr><th>Item</th><th>Quantity</th><th>Unit Price</th><th>Total</th></tr>
                             </thead>
                             <tbody>
-                                ${invoice.items.map(item => `
+                                ${invoice.items
+                                  .map(
+                                    (item) => `
                                     <tr>
                                         <td>${item.partName}</td>
                                         <td>${item.quantity}</td>
                                         <td>Rs. ${item.unitPrice.toLocaleString()}</td>
                                         <td>Rs. ${item.lineTotal.toLocaleString()}</td>
                                     </tr>
-                                `).join('')}
+                                `,
+                                  )
+                                  .join("")}
                             </tbody>
                         </table>
                         <div class="total">
                             <p>Subtotal: Rs. ${invoice.subtotal?.toLocaleString() || (invoice.partsTotal + invoice.serviceCharge).toLocaleString()}</p>
-                            <p>Discount (10%): Rs. ${invoice.discount?.toLocaleString() || 0}</p>
+                            <p>Discount: Rs. ${invoice.discount?.toLocaleString() || 0}</p>
                             <p>Total: Rs. ${invoice.total?.toLocaleString() || invoice.salesAmount?.toLocaleString()}</p>
                         </div>
                     </body>
@@ -392,12 +391,24 @@ function SalesPage() {
                                 className="w-full h-10 px-3 rounded-md border border-input bg-background"
                             >
                                 <option value="">Select Existing Booking</option>
-                                {bookings.map(b => (
-                                    <option key={b.bookingId} value={b.bookingId}>
-                                        Booking #{b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
-                                    </option>
-                                ))}
+                                {bookings
+                                    .filter(b => {
+                                        const status = b.bookingStatus || b.status;
+                                        return status === "Pending" || status === "Confirmed" || status === 0 || status === 1;
+                                    })
+                                    .map(b => (
+                                        <option key={b.bookingId} value={b.bookingId}>
+                                            Booking #{b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
+                                        </option>
+                                    ))
+                                }
                             </select>
+                            {bookings.filter(b => {
+                                const status = b.bookingStatus || b.status;
+                                return status === "Pending" || status === "Confirmed" || status === 0 || status === 1;
+                            }).length === 0 && (
+                                <p className="text-sm text-muted-foreground mt-2">No bookings available.</p>
+                            )}
                         </div>
                     )}
                     
@@ -556,92 +567,92 @@ function SalesPage() {
 }
 
 function Row({ label, value, muted, bold }) {
-    return (
-        <div className="flex justify-between">
-            <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
-            <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
-        </div>
-    );
+  return (
+    <div className="flex justify-between">
+      <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
+      <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
+    </div>
+  );
 }
 
 // API Functions
 async function apiFetch(path, options = {}) {
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-        ...options,
-        headers: getAuthHeaders(options.headers),
-    });
-    return readApiResponse(res);
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: getAuthHeaders(options.headers),
+  });
+  return readApiResponse(res);
 }
 
 function getAuthHeaders(headers = {}) {
-    const accessToken = localStorage.getItem("accessToken");
-    return {
-        "Content-Type": "application/json",
-        ...headers,
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    };
+  const accessToken = localStorage.getItem("accessToken");
+  return {
+    "Content-Type": "application/json",
+    ...headers,
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
 }
 
 async function readApiResponse(res) {
-    const text = await res.text();
-    
-    if (!res.ok) {
-        let errorMessage = text || "Request failed.";
-        try {
-            const parsed = JSON.parse(text);
-            errorMessage = parsed.message || parsed.Message || parsed.title || errorMessage;
-        } catch {
-            // Plain-text error
-        }
-        throw new Error(errorMessage);
-    }
-    
-    if (!text) return null;
-    
+  const text = await res.text();
+
+  if (!res.ok) {
+    let errorMessage = text || "Request failed.";
     try {
-        return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      errorMessage = parsed.message || parsed.Message || parsed.title || errorMessage;
     } catch {
-        return text;
+      // Plain-text error
     }
+    throw new Error(errorMessage);
+  }
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }
 
 // API endpoint functions
 function getCustomers() {
-    return apiFetch("/customers");
+  return apiFetch("/customers");
 }
 
 function getParts() {
-    return apiFetch("/parts");
+  return apiFetch("/parts");
 }
 
 function getServices() {
-    return apiFetch("/services");
+  return apiFetch("/services");
 }
 
 function getVehicles(customerId) {
-    return apiFetch(`/vehicle/customer/${customerId}`);
+  return apiFetch(`/vehicle/customer/${customerId}`);
 }
 
 function getBookingsByCustomer(customerId) {
-    return apiFetch(`/bookings/customer/${customerId}`);
+  return apiFetch(`/bookings/customer/${customerId}`);
 }
 
 function createSale(data) {
-    return apiFetch("/sales", {
-        method: "POST",
-        body: JSON.stringify(data),
-    });
+  return apiFetch("/sales", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 function sendInvoiceEmail(salesId, recipientEmail) {
-    return apiFetch(`/sales/${salesId}/send-invoice`, {
-        method: "POST",
-        body: JSON.stringify({ salesId, recipientEmail }),
-    });
+  return apiFetch(`/sales/${salesId}/send-invoice`, {
+    method: "POST",
+    body: JSON.stringify({ salesId, recipientEmail }),
+  });
 }
 
 function getInvoice(salesId) {
-    return apiFetch(`/sales/${salesId}/invoice`);
+  return apiFetch(`/sales/${salesId}/invoice`);
 }
 
 export default SalesPage;

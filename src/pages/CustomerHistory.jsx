@@ -1,8 +1,10 @@
 import { PageHeader } from "../components/PageHeader";
 import { useEffect, useState } from "react";
 import { ChevronRight, Phone, Mail, MapPin, Car } from "lucide-react";
-import axios from "axios";
-import { getCustomerById } from "../api/customerApi";
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api"
+).replace(/\/$/, "");
 
 function CustomerHistory() {
   const [customers, setCustomers] = useState([]);
@@ -11,8 +13,6 @@ function CustomerHistory() {
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const API_BASE_URL = "http://localhost:5229/api";
 
   useEffect(() => {
     fetchCustomers();
@@ -29,8 +29,7 @@ function CustomerHistory() {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(`${API_BASE_URL}/Customer`);
-      const data = response.data || [];
+      const data = await getCustomers();
 
       setCustomers(data);
 
@@ -48,7 +47,9 @@ function CustomerHistory() {
   const fetchCustomerDetails = async (id) => {
     try {
       setDetailsLoading(true);
+
       const data = await getCustomerById(id);
+
       setSelectedCustomer(data);
     } catch (err) {
       console.error(err);
@@ -65,7 +66,10 @@ function CustomerHistory() {
           title="Customer History"
           description="Detailed view of customer profile, vehicles and purchases."
         />
-        <div className="text-muted-foreground">Loading customers...</div>
+
+        <div className="text-muted-foreground">
+          Loading customers...
+        </div>
       </div>
     );
   }
@@ -77,6 +81,7 @@ function CustomerHistory() {
           title="Customer History"
           description="Detailed view of customer profile, vehicles and purchases."
         />
+
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-600">
           {error}
         </div>
@@ -120,10 +125,12 @@ function CustomerHistory() {
                     <div className="text-sm font-medium">
                       {customer.firstName} {customer.lastName}
                     </div>
+
                     <div className="text-xs text-muted-foreground font-mono">
                       C-{customer.customerId}
                     </div>
                   </div>
+
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </button>
               ))
@@ -144,6 +151,7 @@ function CustomerHistory() {
                     <div className="font-display text-2xl font-bold">
                       {c.firstName} {c.lastName}
                     </div>
+
                     <div className="text-xs text-muted-foreground font-mono mt-1">
                       C-{c.customerId}
                     </div>
@@ -161,10 +169,12 @@ function CustomerHistory() {
                     <Phone className="h-4 w-4" />
                     {c.phoneNumber || "N/A"}
                   </div>
+
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="h-4 w-4" />
                     {c.email || "N/A"}
                   </div>
+
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="h-4 w-4" />
                     {c.address || "N/A"}
@@ -176,12 +186,17 @@ function CustomerHistory() {
                     label="Total Spent"
                     value={`Rs. ${(c.totalSpent || 0).toLocaleString()}`}
                   />
+
                   <Stat
                     label="Outstanding Credit"
                     value={`Rs. ${(c.creditBalance || 0).toLocaleString()}`}
                     accent={(c.creditBalance || 0) > 0}
                   />
-                  <Stat label="Loyalty Points" value={c.loyaltyPoints || 0} />
+
+                  <Stat
+                    label="Loyalty Points"
+                    value={c.loyaltyPoints || 0}
+                  />
                 </div>
               </div>
 
@@ -200,6 +215,7 @@ function CustomerHistory() {
                       <div className="font-medium">
                         {vehicle.brand} {vehicle.model} ({vehicle.year})
                       </div>
+
                       <div className="text-xs text-muted-foreground font-mono mt-1">
                         {vehicle.vehicleNumber} · {vehicle.color}
                       </div>
@@ -216,6 +232,7 @@ function CustomerHistory() {
                 <div className="p-6 border-b border-border font-display font-semibold">
                   Purchase History
                 </div>
+
                 <div className="px-6 py-8 text-center text-muted-foreground text-sm">
                   Purchase history will appear here after sales/invoice data is connected.
                 </div>
@@ -234,6 +251,7 @@ function Stat({ label, value, accent }) {
       <div className="text-xs uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
+
       <div
         className={`font-display text-xl font-bold mt-1 ${
           accent ? "text-destructive" : ""
@@ -243,6 +261,63 @@ function Stat({ label, value, accent }) {
       </div>
     </div>
   );
+}
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: getAuthHeaders(options.headers),
+  });
+
+  return readApiResponse(res);
+}
+
+function getAuthHeaders(headers = {}) {
+  const token =
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken");
+
+  return {
+    "Content-Type": "application/json",
+    ...headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function readApiResponse(res) {
+  const text = await res.text();
+
+  if (!res.ok) {
+    let errorMessage = text || "Request failed.";
+
+    try {
+      const parsed = JSON.parse(text);
+
+      errorMessage =
+        parsed.message ||
+        parsed.Message ||
+        parsed.title ||
+        errorMessage;
+    } catch {}
+
+    throw new Error(errorMessage);
+  }
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function getCustomers() {
+  return apiFetch("/Customer");
+}
+
+function getCustomerById(id) {
+  return apiFetch(`/Customer/${id}`);
 }
 
 export default CustomerHistory;

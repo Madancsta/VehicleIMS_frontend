@@ -1,53 +1,69 @@
 import { PageHeader } from "../components/PageHeader";
 import { Download, TrendingUp, TrendingDown } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getFinancialReport } from "../api/financialReportApi";
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api"
+).replace(/\/$/, "");
 
 function ReportsPage() {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const fetchFinancialReport = async () => {
-      try {
-        const data = await getFinancialReport();
-        setReportData(data);
-      } catch (error) {
-        console.error("Failed to load financial report", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFinancialReport();
+    loadFinancialReport();
   }, []);
+
+  const loadFinancialReport = async () => {
+    try {
+      setLoading(true);
+      setMessage("");
+
+      const data = await getFinancialReport();
+      setReportData(data);
+    } catch (error) {
+      console.error("Failed to load financial report:", error);
+      setMessage("Could not load financial report. Please refresh the page.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="p-6 text-muted-foreground">
-        Loading financial reports...
+      <div>
+        <PageHeader
+          title="Financial Reports"
+          description="Revenue, expenses, profit and outstanding credits."
+        />
+        <div className="text-muted-foreground">Loading financial reports...</div>
       </div>
     );
   }
 
-  if (!reportData) {
+  if (message) {
     return (
-      <div className="p-6 text-destructive">
-        Failed to load financial reports.
+      <div>
+        <PageHeader
+          title="Financial Reports"
+          description="Revenue, expenses, profit and outstanding credits."
+        />
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-600">
+          {message}
+        </div>
       </div>
     );
   }
 
-  const {
-    totalRevenue,
-    totalExpenses,
-    netProfit,
-    monthlyBreakdown,
-    outstandingCredits,
-  } = reportData;
+  const totalRevenue = Number(reportData?.totalRevenue || 0);
+  const totalExpenses = Number(reportData?.totalExpenses || 0);
+  const netProfit = Number(reportData?.netProfit || 0);
+  const monthlyBreakdown = reportData?.monthlyBreakdown || [];
+  const outstandingCredits = reportData?.outstandingCredits || [];
 
   const maxRevenue = Math.max(
-    ...monthlyBreakdown.map((m) => Number(m.revenue)),
+    ...monthlyBreakdown.map((m) => Number(m.revenue || 0)),
     1
   );
 
@@ -69,11 +85,9 @@ function ReportsPage() {
           <div className="text-xs uppercase tracking-wider text-muted-foreground">
             Revenue
           </div>
-
           <div className="font-display text-3xl font-bold mt-2">
-            Rs. {Number(totalRevenue).toLocaleString()}
+            Rs. {totalRevenue.toLocaleString()}
           </div>
-
           <div className="text-xs text-success mt-1 flex items-center gap-1">
             <TrendingUp className="h-3 w-3" />
             Financial growth
@@ -84,11 +98,9 @@ function ReportsPage() {
           <div className="text-xs uppercase tracking-wider text-muted-foreground">
             Expenses
           </div>
-
           <div className="font-display text-3xl font-bold mt-2">
-            Rs. {Number(totalExpenses).toLocaleString()}
+            Rs. {totalExpenses.toLocaleString()}
           </div>
-
           <div className="text-xs text-destructive mt-1 flex items-center gap-1">
             <TrendingDown className="h-3 w-3" />
             Operational expenses
@@ -99,11 +111,9 @@ function ReportsPage() {
           <div className="text-xs uppercase tracking-wider opacity-60">
             Net Profit
           </div>
-
           <div className="font-display text-3xl font-bold mt-2">
-            Rs. {Number(netProfit).toLocaleString()}
+            Rs. {netProfit.toLocaleString()}
           </div>
-
           <div className="text-xs opacity-60 mt-1">
             {totalRevenue > 0
               ? `${((netProfit / totalRevenue) * 100).toFixed(1)}% margin`
@@ -119,13 +129,12 @@ function ReportsPage() {
 
         <div className="space-y-4">
           {monthlyBreakdown.length > 0 ? (
-            monthlyBreakdown.map((m) => (
-              <div key={m.month}>
+            monthlyBreakdown.map((m, index) => (
+              <div key={`${m.month}-${index}`}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium">{m.month}</span>
-
                   <span className="font-mono text-muted-foreground">
-                    Rs. {Number(m.revenue).toLocaleString()}
+                    Rs. {Number(m.revenue || 0).toLocaleString()}
                   </span>
                 </div>
 
@@ -133,7 +142,7 @@ function ReportsPage() {
                   <div
                     className="h-full bg-primary"
                     style={{
-                      width: `${(Number(m.revenue) / maxRevenue) * 100}%`,
+                      width: `${(Number(m.revenue || 0) / maxRevenue) * 100}%`,
                     }}
                   />
                 </div>
@@ -167,28 +176,19 @@ function ReportsPage() {
             <tbody>
               {outstandingCredits.length > 0 ? (
                 outstandingCredits.map((credit, index) => (
-                  <tr
-                    key={index}
-                    className="border-t border-border"
-                  >
+                  <tr key={index} className="border-t border-border">
                     <td className="px-6 py-3 font-mono text-xs">
                       {credit.invoice}
                     </td>
-
-                    <td className="px-6 py-3">
-                      {credit.customer}
-                    </td>
-
+                    <td className="px-6 py-3">{credit.customer}</td>
                     <td className="px-6 py-3 text-right">
-                      Rs. {Number(credit.total).toLocaleString()}
+                      Rs. {Number(credit.total || 0).toLocaleString()}
                     </td>
-
                     <td className="px-6 py-3 text-right text-muted-foreground">
-                      Rs. {Number(credit.paid).toLocaleString()}
+                      Rs. {Number(credit.paid || 0).toLocaleString()}
                     </td>
-
                     <td className="px-6 py-3 text-right font-medium text-destructive">
-                      Rs. {Number(credit.pending).toLocaleString()}
+                      Rs. {Number(credit.pending || 0).toLocaleString()}
                     </td>
                   </tr>
                 ))
@@ -208,6 +208,56 @@ function ReportsPage() {
       </div>
     </div>
   );
+}
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: getAuthHeaders(options.headers),
+  });
+
+  return readApiResponse(res);
+}
+
+function getAuthHeaders(headers = {}) {
+  const token =
+    localStorage.getItem("token") || localStorage.getItem("accessToken");
+
+  return {
+    "Content-Type": "application/json",
+    ...headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function readApiResponse(res) {
+  const text = await res.text();
+
+  if (!res.ok) {
+    let errorMessage = text || "Request failed.";
+
+    try {
+      const parsed = JSON.parse(text);
+      errorMessage =
+        parsed.message || parsed.Message || parsed.title || errorMessage;
+    } catch {
+      // plain text error
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function getFinancialReport() {
+  return apiFetch("/FinancialReport");
 }
 
 export default ReportsPage;
