@@ -1,18 +1,17 @@
 import { PageHeader } from "../components/PageHeader";
 import { Award, TrendingUp, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  getHighSpenders,
-  getPendingCredits,
-  getRegularCustomers,
-} from "../api/customerApi";
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api"
+).replace(/\/$/, "");
 
 function CustomersReport() {
   const [highSpenders, setHighSpenders] = useState([]);
   const [regulars, setRegulars] = useState([]);
   const [credits, setCredits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     loadReports();
@@ -21,7 +20,7 @@ function CustomersReport() {
   const loadReports = async () => {
     try {
       setLoading(true);
-      setError("");
+      setMessage("");
 
       const [highSpendersData, pendingCreditsData, regularCustomersData] =
         await Promise.all([
@@ -30,22 +29,18 @@ function CustomersReport() {
           getRegularCustomers(),
         ]);
 
-      setHighSpenders(highSpendersData || []);
-      setCredits(pendingCreditsData || []);
-      setRegulars(regularCustomersData || []);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load customer reports. Make sure backend is running.");
+      setHighSpenders(toArray(highSpendersData));
+      setCredits(toArray(pendingCreditsData));
+      setRegulars(toArray(regularCustomersData));
+    } catch (error) {
+      console.error("Failed to load customer reports:", error);
+      setMessage("Could not load customer reports. Please refresh the page.");
     } finally {
       setLoading(false);
     }
   };
 
-  const allCustomers = [
-    ...highSpenders,
-    ...regulars,
-    ...credits,
-  ].filter(
+  const allCustomers = [...highSpenders, ...regulars, ...credits].filter(
     (customer, index, self) =>
       index === self.findIndex((c) => c.customerId === customer.customerId)
   );
@@ -62,7 +57,7 @@ function CustomersReport() {
     );
   }
 
-  if (error) {
+  if (message) {
     return (
       <div>
         <PageHeader
@@ -70,7 +65,7 @@ function CustomersReport() {
           description="Insights into regulars, top spenders and outstanding credits."
         />
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-600">
-          {error}
+          {message}
         </div>
       </div>
     );
@@ -109,7 +104,7 @@ function CustomersReport() {
                   </div>
                 </div>
                 <div className="text-sm font-mono">
-                  Rs. {(c.totalSpent || 0).toLocaleString()}
+                  Rs. {Number(c.totalSpent || 0).toLocaleString()}
                 </div>
               </div>
             ))
@@ -162,7 +157,7 @@ function CustomersReport() {
                   </div>
                 </div>
                 <div className="text-sm font-mono text-destructive">
-                  Rs. {(c.creditBalance || 0).toLocaleString()}
+                  Rs. {Number(c.creditBalance || 0).toLocaleString()}
                 </div>
               </div>
             ))
@@ -207,12 +202,12 @@ function CustomersReport() {
                       {c.phoneNumber || "N/A"}
                     </td>
                     <td className="px-6 py-3 text-right">
-                      Rs. {(c.totalSpent || 0).toLocaleString()}
+                      Rs. {Number(c.totalSpent || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-3 text-right">
-                      {(c.creditBalance || 0) > 0 ? (
+                      {Number(c.creditBalance || 0) > 0 ? (
                         <span className="text-destructive">
-                          Rs. {(c.creditBalance || 0).toLocaleString()}
+                          Rs. {Number(c.creditBalance || 0).toLocaleString()}
                         </span>
                       ) : (
                         "—"
@@ -229,8 +224,8 @@ function CustomersReport() {
                     colSpan="6"
                     className="px-6 py-8 text-center text-muted-foreground"
                   >
-                    No report data found. Add customer spending, credit balance,
-                    or loyalty points to see report results.
+                    No report data found. Add spending, credit balance, or
+                    loyalty points to customers to see report results.
                   </td>
                 </tr>
               )}
@@ -246,7 +241,9 @@ function ReportCard({ title, icon: Icon, accent, children }) {
   return (
     <div className="bg-card border border-border rounded-lg p-6">
       <div className="flex items-center gap-2 mb-4">
-        <div className={`h-8 w-8 rounded-md flex items-center justify-center ${accent}`}>
+        <div
+          className={`h-8 w-8 rounded-md flex items-center justify-center ${accent}`}
+        >
           <Icon className="h-4 w-4" />
         </div>
         <div className="font-display font-semibold">{title}</div>
@@ -257,11 +254,71 @@ function ReportCard({ title, icon: Icon, accent, children }) {
 }
 
 function EmptyText({ text }) {
-  return (
-    <div className="py-3 text-sm text-muted-foreground">
-      {text}
-    </div>
-  );
+  return <div className="py-3 text-sm text-muted-foreground">{text}</div>;
+}
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: getAuthHeaders(options.headers),
+  });
+
+  return readApiResponse(res);
+}
+
+function getAuthHeaders(headers = {}) {
+  const token = localStorage.getItem("token") || localStorage.getItem("accessToken");
+
+  return {
+    "Content-Type": "application/json",
+    ...headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function readApiResponse(res) {
+  const text = await res.text();
+
+  if (!res.ok) {
+    let errorMessage = text || "Request failed.";
+
+    try {
+      const parsed = JSON.parse(text);
+      errorMessage =
+        parsed.message || parsed.Message || parsed.title || errorMessage;
+    } catch {
+      // plain text error
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function toArray(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.$values)) return data.$values;
+  return [];
+}
+
+function getHighSpenders() {
+  return apiFetch("/Customer/reports/high-spenders");
+}
+
+function getPendingCredits() {
+  return apiFetch("/Customer/reports/pending-credits");
+}
+
+function getRegularCustomers() {
+  return apiFetch("/Customer/reports/regulars");
 }
 
 export default CustomersReport;
