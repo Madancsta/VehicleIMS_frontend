@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link } from "../components/Link";
 import { PageHeader } from "../components/PageHeader";
 import { User, Car, Phone, Mail, MapPin, Award, DollarSign, CreditCard, Edit, Save, X, Plus, ArrowLeft } from "lucide-react";
 import { Modal, Field, inputCls } from "../components/Modal";
 
 function CustomerDetails() {
-    const { customerId } = useParams();
+    const customerId = localStorage.getItem("customerId");
     const [customer, setCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");

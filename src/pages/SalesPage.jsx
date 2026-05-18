@@ -1,271 +1,647 @@
 import { PageHeader } from "../components/PageHeader";
-import { parts, customers } from "../lib/dummy-data";
-import { Plus, Trash2, Mail, Printer } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Plus, Trash2, Mail, Printer, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 
-// Service charge mapping based on Vehicle Type and Service Type
-const serviceChargeMap = {
-  Car: {
-    "Basic Service": 2500,
-    "Full Service": 5000,
-    "Oil Change": 1500,
-    "Brake Repair": 3000,
-    "Engine Tune-up": 4500,
-    "AC Service": 2000,
-    "Tire Replacement": 1800,
-    "Battery Replacement": 1200
-  },
-  SUV: {
-    "Basic Service": 3500,
-    "Full Service": 7000,
-    "Oil Change": 2000,
-    "Brake Repair": 4000,
-    "Engine Tune-up": 6000,
-    "AC Service": 3000,
-    "Tire Replacement": 2500,
-    "Battery Replacement": 1800
-  },
-  Truck: {
-    "Basic Service": 5000,
-    "Full Service": 10000,
-    "Oil Change": 3500,
-    "Brake Repair": 6000,
-    "Engine Tune-up": 8500,
-    "AC Service": 4500,
-    "Tire Replacement": 4000,
-    "Battery Replacement": 3000
-  },
-  Bike: {
-    "Basic Service": 1200,
-    "Full Service": 2500,
-    "Oil Change": 800,
-    "Brake Repair": 1500,
-    "Engine Tune-up": 2000,
-    "AC Service": 0,
-    "Tire Replacement": 1000,
-    "Battery Replacement": 900
-  },
-  Bus: {
-    "Basic Service": 8000,
-    "Full Service": 15000,
-    "Oil Change": 5000,
-    "Brake Repair": 9000,
-    "Engine Tune-up": 12000,
-    "AC Service": 7000,
-    "Tire Replacement": 6000,
-    "Battery Replacement": 4500
-  }
-};
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api").replace(
+  /\/$/,
+  "",
+);
 
 function SalesPage() {
-    const [items, setItems] = useState([
-        { partId: "P-1001", name: "Brake Pad — Front", qty: 2, price: 2400 },
-        { partId: "P-1002", name: "Engine Oil 10W-40 (1L)", qty: 1, price: 850 },
-    ]);
+    const [items, setItems] = useState([]);
+    const [customers, setCustomers] = useState([]);
+    const [parts, setParts] = useState([]);
+    const [services, setServices] = useState([]);
+    const [vehicles, setVehicles] = useState([]);
+    const [bookings, setBookings] = useState([]);
+    const [selectedCustomerId, setSelectedCustomerId] = useState("");
+    const [selectedServiceId, setSelectedServiceId] = useState("");
+    const [selectedVehicleId, setSelectedVehicleId] = useState("");
+    const [selectedBookingId, setSelectedBookingId] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("Cash");
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
+    const [lastSale, setLastSale] = useState(null);
+    const [pageLoading, setPageLoading] = useState(true);
     
-    const [selectedVehicleType, setSelectedVehicleType] = useState("");
-    const [selectedServiceType, setSelectedServiceType] = useState("");
-    const [serviceCharge, setServiceCharge] = useState(0);
-    
-    // Calculate service charge when vehicle type or service type changes
+    // Fetch data on mount
     useEffect(() => {
-        if (selectedVehicleType && selectedServiceType) {
-            const charge = serviceChargeMap[selectedVehicleType]?.[selectedServiceType] || 0;
-            setServiceCharge(charge);
-        } else {
-            setServiceCharge(0);
-        }
-    }, [selectedVehicleType, selectedServiceType]);
+        const loadInitialData = async () => {
+            setPageLoading(true);
+            await Promise.all([
+                loadCustomers(),
+                loadParts(),
+                loadServices()
+            ]);
+            setPageLoading(false);
+        };
+        
+        loadInitialData();
+    }, []);
     
-    const partsTotal = items.reduce((s, i) => s + i.qty * i.price, 0);
+    // Load bookings and vehicles when customer changes
+    useEffect(() => {
+        if (selectedCustomerId) {
+            loadBookingsByCustomer(selectedCustomerId);
+            loadVehicles(selectedCustomerId);
+        } else {
+            setBookings([]);
+            setVehicles([]);
+        }
+    }, [selectedCustomerId]);
+    
+    const loadCustomers = useCallback(async () => {
+        try {
+            const data = await getCustomers();
+            const customersList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+            setCustomers(customersList);
+            return customersList;
+        } catch (error) {
+            console.error("Failed to load customers:", error);
+            setMessage("Could not load customers. Please refresh the page.");
+            return [];
+        }
+    }, []);
+    
+    const loadParts = useCallback(async () => {
+        try {
+            const data = await getParts();
+            const partsList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+            setParts(partsList);
+            return partsList;
+        } catch (error) {
+            console.error("Failed to load parts:", error);
+            setMessage("Could not load parts. Please refresh the page.");
+            return [];
+        }
+    }, []);
+    
+    const loadServices = useCallback(async () => {
+        try {
+            const data = await getServices();
+            const servicesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+            setServices(servicesList);
+            return servicesList;
+        } catch (error) {
+            console.error("Failed to load services:", error);
+            return [];
+        }
+    }, []);
+    
+    const loadVehicles = useCallback(async (customerId) => {
+        if (!customerId) {
+            setVehicles([]);
+            return;
+        }
+        
+        try {
+            const data = await getVehicles(customerId);
+            const vehiclesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+            setVehicles(vehiclesList);
+        } catch (error) {
+            console.error("Failed to load vehicles:", error);
+            setVehicles([]);
+        }
+    }, []);
+    
+    const loadBookingsByCustomer = useCallback(async (customerId) => {
+        if (!customerId) {
+            setBookings([]);
+            return;
+        }
+        
+        try {
+            const data = await getBookingsByCustomer(customerId);
+            const bookingsList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+            setBookings(bookingsList);
+        } catch (error) {
+            console.error("Failed to load bookings:", error);
+            setBookings([]);
+        }
+    }, []);
+    
+    const partsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    
+    // Get selected service details
+    const selectedService = services.find(s => s.serviceId === parseInt(selectedServiceId));
+    const serviceCharge = selectedService?.serviceCharge || 0;
+    
     const subtotal = partsTotal + serviceCharge;
     const discount = Math.round(subtotal * 0.1);
     const total = subtotal - discount;
     
-    return (<div>
-      <PageHeader title="Sales / Invoice" description="Create a new sale and generate invoice."/>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-4">
-          <div className="bg-card border border-border rounded-lg p-6">
-            <div className="font-display font-semibold mb-4">Customer Information</div>
-            <select className="w-full h-10 px-3 rounded-md border border-input bg-background">
-              {customers.map(c => <option key={c.id}>{c.name} — {c.phone}</option>)}
-            </select>
-          </div>
-
-          <div className="bg-card border border-border rounded-lg p-6">
-            <div className="font-display font-semibold mb-4">Service Details</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Vehicle Type</label>
-                <select 
-                  value={selectedVehicleType}
-                  onChange={(e) => {
-                    setSelectedVehicleType(e.target.value);
-                    setSelectedServiceType(""); // Reset service type when vehicle type changes
-                  }}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                >
-                  <option value="">Select Vehicle Type</option>
-                  <option value="Car">Car</option>
-                  <option value="SUV">SUV</option>
-                  <option value="Truck">Truck</option>
-                  <option value="Bike">Bike</option>
-                  <option value="Bus">Bus</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Service Type</label>
-                <select 
-                  value={selectedServiceType}
-                  onChange={(e) => setSelectedServiceType(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                  disabled={!selectedVehicleType}
-                >
-                  <option value="">Select Service Type</option>
-                  {selectedVehicleType && Object.keys(serviceChargeMap[selectedVehicleType]).map(service => (
-                    <option key={service} value={service}>{service}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+    const handleCompleteSale = async () => {
+        if (!selectedCustomerId) {
+            alert("Please select a customer");
+            return;
+        }
+        
+        if (items.length === 0 && !selectedServiceId) {
+            alert("Please add at least one part or select a service");
+            return;
+        }
+        
+        setLoading(true);
+        setMessage("");
+        
+        try {
+            const payload = {
+                customerId: parseInt(selectedCustomerId),
+                serviceId: selectedServiceId ? parseInt(selectedServiceId) : null,
+                vehicleId: selectedVehicleId ? parseInt(selectedVehicleId) : null,
+                bookingId: selectedBookingId ? parseInt(selectedBookingId) : null,
+                items: items.map(item => ({
+                    partId: parseInt(item.partId),
+                    quantity: item.quantity
+                })),
+                paymentMethod: paymentMethod.toLowerCase()
+            };
             
-            {serviceCharge > 0 && (
-              <div className="mt-4 p-3 bg-primary/5 rounded-md border border-primary/20">
-                <div className="text-sm flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">Service Summary:</span> 
-                    <span> {selectedVehicleType} • {selectedServiceType}</span>
-                  </div>
-                  <div className="font-mono font-semibold text-primary">
-                    Rs. {serviceCharge.toLocaleString()}
-                  </div>
+            console.log("Sending payload:", payload);
+            
+            const result = await createSale(payload);
+            setLastSale(result);
+            setMessage(`Sale completed successfully! Invoice #${result.invoiceNumber}`);
+            
+            // Reset form after successful sale
+            setItems([]);
+            setSelectedServiceId("");
+            setSelectedVehicleId("");
+            setSelectedBookingId("");
+            setSelectedCustomerId("");
+            
+        } catch (err) {
+            console.error("Sale error:", err);
+            setMessage(err.message || "Unable to create sale.");
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    const handleSendInvoiceEmail = async () => {
+        if (!lastSale?.salesId) {
+            alert("Please complete a sale first before sending invoice.");
+            return;
+        }
+        
+        const customer = customers.find(c => c.customerId === parseInt(selectedCustomerId));
+        if (!customer?.email) {
+            alert("Customer does not have an email address.");
+            return;
+        }
+        
+        try {
+            await sendInvoiceEmail(lastSale.salesId, customer.email);
+            alert(`Invoice sent successfully to ${customer.email}`);
+        } catch (err) {
+            alert(err.message || "Failed to send invoice email.");
+        }
+    };
+    
+    const handlePrint = async () => {
+        if (!lastSale?.salesId) {
+            alert("Please complete a sale first before printing invoice.");
+            return;
+        }
+        
+        try {
+            const invoice = await getInvoice(lastSale.salesId);
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Invoice #${invoice.invoiceNumber}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 40px; }
+                            .header { text-align: center; margin-bottom: 30px; }
+                            .invoice-details { margin-bottom: 20px; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f2f2f2; }
+                            .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 20px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h1>INVOICE</h1>
+                            <p>${invoice.invoiceNumber}</p>
+                        </div>
+                        <div class="invoice-details">
+                            <p><strong>Date:</strong> ${new Date(invoice.salesDate).toLocaleDateString()}</p>
+                            <p><strong>Customer:</strong> ${invoice.customerName}</p>
+                            <p><strong>Payment Method:</strong> ${invoice.paymentMethod}</p>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr><th>Item</th><th>Quantity</th><th>Unit Price</th><th>Total</th></tr>
+                            </thead>
+                            <tbody>
+                                ${invoice.items.map(item => `
+                                    <tr>
+                                        <td>${item.partName}</td>
+                                        <td>${item.quantity}</td>
+                                        <td>Rs. ${item.unitPrice.toLocaleString()}</td>
+                                        <td>Rs. ${item.lineTotal.toLocaleString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <div class="total">
+                            <p>Subtotal: Rs. ${invoice.subtotal?.toLocaleString() || (invoice.partsTotal + invoice.serviceCharge).toLocaleString()}</p>
+                            <p>Discount (10%): Rs. ${invoice.discount?.toLocaleString() || 0}</p>
+                            <p>Total: Rs. ${invoice.total?.toLocaleString() || invoice.salesAmount?.toLocaleString()}</p>
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        } catch (err) {
+            console.error("Print error:", err);
+            alert("Failed to load invoice for printing.");
+        }
+    };
+    
+    const addPartToCart = (part) => {
+        const existingItem = items.find(item => item.partId === part.partId);
+        if (existingItem) {
+            setItems(items.map(item => 
+                item.partId === part.partId 
+                    ? { ...item, quantity: item.quantity + 1 }
+                    : item
+            ));
+        } else {
+            setItems([...items, { 
+                partId: part.partId, 
+                name: part.partName, 
+                quantity: 1, 
+                unitPrice: part.unitPrice || part.partPrice
+            }]);
+        }
+    };
+    
+    const updateQuantity = (index, newQuantity) => {
+        if (newQuantity < 1) {
+            removeItem(index);
+        } else {
+            setItems(items.map((item, i) => 
+                i === index ? { ...item, quantity: newQuantity } : item
+            ));
+        }
+    };
+    
+    const removeItem = (index) => {
+        setItems(items.filter((_, i) => i !== index));
+    };
+    
+    if (pageLoading) {
+        return (
+            <div>
+                <PageHeader title="Sales / Invoice" description="Create a new sale and generate invoice." />
+                <div className="flex justify-center items-center h-64">
+                    <div className="text-center">
+                        <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                        <p className="text-muted-foreground">Loading data...</p>
+                    </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <div className="p-6 border-b border-border flex items-center justify-between">
-              <div className="font-display font-semibold">Parts & Items</div>
-              <button className="px-3 h-9 rounded-md bg-primary text-primary-foreground text-sm flex items-center gap-1.5"><Plus className="h-3.5 w-3.5"/> Add Part</button>
             </div>
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full text-sm">
-                <thead className="bg-surface text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="text-left px-6 py-3">Part</th>
-                    <th className="text-right px-6 py-3">Qty</th>
-                    <th className="text-right px-6 py-3">Price</th>
-                    <th className="text-right px-6 py-3">Total</th>
-                    <th className="px-6 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((i, idx) => (
-                    <tr key={idx} className="border-t border-border">
-                      <td className="px-6 py-3 font-medium">{i.name}</td>
-                      <td className="px-6 py-3 text-right">{i.qty}</td>
-                      <td className="px-6 py-3 text-right font-mono">Rs. {i.price.toLocaleString()}</td>
-                      <td className="px-6 py-3 text-right font-medium">Rs. {(i.qty * i.price).toLocaleString()}</td>
-                      <td className="px-6 py-3 text-right">
-                        <button onClick={() => setItems(items.filter((_, x) => x !== idx))} className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-surface text-destructive">
-                          <Trash2 className="h-3.5 w-3.5"/>
+        );
+    }
+    
+    return (
+        <div>
+            <PageHeader title="Sales / Invoice" description="Create a new sale and generate invoice." />
+            
+            {message && (
+                <div className={`mb-6 rounded-lg border p-4 text-sm shadow-sm ${
+                    message.includes("success") || message.includes("Successfully")
+                        ? "border-green-500 bg-green-50 text-green-700" 
+                        : "border-red-500 bg-red-50 text-red-700"
+                }`}>
+                    {message}
+                </div>
+            )}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="col-span-2 space-y-4">
+                    {/* Customer Information */}
+                    <div className="bg-card border border-border rounded-lg p-6">
+                        <div className="font-display font-semibold mb-4">Customer Information</div>
+                        <select 
+                            value={selectedCustomerId}
+                            onChange={(e) => setSelectedCustomerId(e.target.value)}
+                            className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                        >
+                            <option value="">Select Customer</option>
+                            {customers.map(c => (
+                                <option key={c.customerId} value={c.customerId}>
+                                    {c.firstName} {c.lastName} — {c.phoneNumber}
+                                </option>
+                            ))}
+                        </select>
+                        {customers.length === 0 && (
+                            <p className="text-sm text-muted-foreground mt-2">No customers found. Please add customers first.</p>
+                        )}
+                    </div>
+                    
+                    {/* Service Selection */}
+                    <div className="bg-card border border-border rounded-lg p-6">
+                        <div className="font-display font-semibold mb-4">Service Selection</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Service</label>
+                                <select 
+                                    value={selectedServiceId}
+                                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                                >
+                                    <option value="">Select Service (Optional)</option>
+                                    {services.map(s => (
+                                        <option key={s.serviceId} value={s.serviceId}>
+                                            {s.serviceType} - {s.vehicleType} (Rs. {s.serviceCharge})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Vehicle</label>
+                                <select 
+                                    value={selectedVehicleId}
+                                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                                    disabled={!selectedCustomerId}
+                                >
+                                    <option value="">Select Vehicle (Optional)</option>
+                                    {vehicles.map(v => (
+                                        <option key={v.vehicleId} value={v.vehicleId}>
+                                            {v.brand} {v.model} ({v.year}) - {v.vehicleNumber}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Booking Selection (if applicable) */}
+                    {bookings.length > 0 && (
+                        <div className="bg-card border border-border rounded-lg p-6">
+                            <div className="font-display font-semibold mb-4">Booking Reference (Optional)</div>
+                            <select 
+                                value={selectedBookingId}
+                                onChange={(e) => setSelectedBookingId(e.target.value)}
+                                className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                            >
+                                <option value="">Select Existing Booking</option>
+                                {bookings.map(b => (
+                                    <option key={b.bookingId} value={b.bookingId}>
+                                        Booking #{b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    
+                    {/* Parts & Items */}
+                    <div className="bg-card border border-border rounded-lg overflow-hidden">
+                        <div className="p-6 border-b border-border flex items-center justify-between">
+                            <div className="font-display font-semibold">Parts & Items</div>
+                            <div className="text-sm text-muted-foreground">
+                                {items.length} item(s)
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-surface text-xs uppercase tracking-wider text-muted-foreground">
+                                    <tr>
+                                        <th className="text-left px-6 py-3">Part</th>
+                                        <th className="text-center px-6 py-3">Quantity</th>
+                                        <th className="text-right px-6 py-3">Unit Price</th>
+                                        <th className="text-right px-6 py-3">Total</th>
+                                        <th className="px-6 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items.length === 0 ? (
+                                        <tr className="border-t border-border">
+                                            <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                                                No items added. Click on parts below to add them.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        items.map((item, idx) => (
+                                            <tr key={idx} className="border-t border-border">
+                                                <td className="px-6 py-3 font-medium">{item.name}</td>
+                                                <td className="px-6 py-3 text-center">
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={item.quantity}
+                                                        onChange={(e) => updateQuantity(idx, parseInt(e.target.value) || 1)}
+                                                        className="w-20 text-center px-2 py-1 rounded border border-input bg-background"
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-3 text-right font-mono">
+                                                    Rs. {item.unitPrice.toLocaleString()}
+                                                </td>
+                                                <td className="px-6 py-3 text-right font-medium">
+                                                    Rs. {(item.quantity * item.unitPrice).toLocaleString()}
+                                                </td>
+                                                <td className="px-6 py-3 text-right">
+                                                    <button 
+                                                        onClick={() => removeItem(idx)} 
+                                                        className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-surface text-destructive"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5"/>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {/* Quick add part */}
+                    <div className="bg-card border border-border rounded-lg p-6">
+                        <div className="font-display font-semibold mb-4">Quick Add Parts</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {parts.slice(0, 9).map(p => (
+                                <button 
+                                    key={p.partId} 
+                                    onClick={() => addPartToCart(p)} 
+                                    className="p-3 rounded-md border border-border hover:bg-surface text-left transition-colors"
+                                >
+                                    <div className="text-sm font-medium truncate">{p.partName}</div>
+                                    <div className="text-xs text-muted-foreground font-mono mt-1">
+                                        Rs. {(p.unitPrice || p.partPrice || 0).toLocaleString()}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                        Stock: {p.stockQuantity}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                        {parts.length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-4">No parts available.</p>
+                        )}
+                    </div>
+                </div>
+                
+                {/* Invoice Summary */}
+                <div className="bg-card border border-border rounded-lg p-6 h-fit sticky top-8">
+                    <div className="font-display font-semibold mb-4">Invoice Summary</div>
+                    <div className="space-y-2 text-sm">
+                        <Row label="Parts Total" value={`Rs. ${partsTotal.toLocaleString()}`}/>
+                        {serviceCharge > 0 && (
+                            <Row label={`Service Charge (${selectedService?.serviceType})`} 
+                                 value={`Rs. ${serviceCharge.toLocaleString()}`}/>
+                        )}
+                        <Row label="Subtotal" value={`Rs. ${subtotal.toLocaleString()}`}/>
+                        <Row label="Loyalty Discount (10%)" value={`- Rs. ${discount.toLocaleString()}`} muted/>
+                        <div className="border-t border-border pt-3 mt-3">
+                            <Row label="Total Amount" value={`Rs. ${total.toLocaleString()}`} bold/>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-6 space-y-2">
+                        <label className="text-xs uppercase tracking-wider text-muted-foreground">Payment Method</label>
+                        <select 
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                        >
+                            <option>Cash</option>
+                            <option>Card</option>
+                            <option>Credit</option>
+                        </select>
+                    </div>
+                    
+                    <button 
+                        onClick={handleCompleteSale}
+                        disabled={loading}
+                        className="w-full h-11 rounded-md bg-primary text-primary-foreground font-medium mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? "Processing..." : "Complete Sale"}
+                    </button>
+                    
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button 
+                            onClick={handlePrint}
+                            disabled={!lastSale}
+                            className="h-10 rounded-md border border-border text-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                            <Printer className="h-4 w-4"/> Print
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <button 
+                            onClick={handleSendInvoiceEmail}
+                            disabled={!lastSale}
+                            className="h-10 rounded-md border border-border text-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                            <Mail className="h-4 w-4"/> Email
+                        </button>
+                    </div>
+                    
+                    {lastSale && (
+                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-xs text-green-800">
+                            <div className="font-semibold mb-1">Last Sale Created:</div>
+                            <div>Invoice: {lastSale.invoiceNumber}</div>
+                            <div>Amount: Rs. {lastSale.salesAmount?.toLocaleString()}</div>
+                        </div>
+                    )}
+                </div>
             </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-lg p-6">
-            <div className="font-display font-semibold mb-4">Quick add part</div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {parts.slice(0, 6).map(p => (
-                <button 
-                  key={p.id} 
-                  onClick={() => setItems([...items, { partId: p.id, name: p.name, qty: 1, price: p.price }])} 
-                  className="p-3 rounded-md border border-border hover:bg-surface text-left"
-                >
-                  <div className="text-sm font-medium truncate">{p.name}</div>
-                  <div className="text-xs text-muted-foreground font-mono mt-1">Rs. {p.price.toLocaleString()}</div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
-
-        <div className="bg-card border border-border rounded-lg p-6 h-fit sticky top-8">
-          <div className="font-display font-semibold mb-4">Invoice Summary</div>
-          <div className="space-y-2 text-sm">
-            <Row label="Parts Total" value={`Rs. ${partsTotal.toLocaleString()}`}/>
-            {serviceCharge > 0 && (
-              <Row label={`Service Charge (${selectedVehicleType} - ${selectedServiceType})`} value={`Rs. ${serviceCharge.toLocaleString()}`}/>
-            )}
-            <Row label="Subtotal" value={`Rs. ${subtotal.toLocaleString()}`}/>
-            <Row label="Loyalty discount (10%)" value={`- Rs. ${discount.toLocaleString()}`} muted/>
-            <div className="border-t border-border pt-3 mt-3">
-              <Row label="Total" value={`Rs. ${total.toLocaleString()}`} bold/>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-2">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground">Payment</label>
-            <select className="w-full h-10 px-3 rounded-md border border-input bg-background">
-              <option>Cash</option>
-              <option>Card</option>
-              <option>Credit</option>
-            </select>
-          </div>
-
-          <button 
-            onClick={() => {
-              if (!selectedVehicleType || !selectedServiceType) {
-                alert("Please select both Vehicle Type and Service Type");
-                return;
-              }
-              if (items.length === 0 && serviceCharge === 0) {
-                alert("Please add at least one part/item or select a service");
-                return;
-              }
-              // Handle complete sale logic here
-              console.log({ 
-                selectedVehicleType, 
-                selectedServiceType, 
-                serviceCharge,
-                items, 
-                partsTotal,
-                subtotal,
-                discount,
-                total 
-              });
-              alert("Sale completed successfully!");
-            }}
-            className="w-full h-11 rounded-md bg-primary text-primary-foreground font-medium mt-4"
-          >
-            Complete Sale
-          </button>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <button className="h-10 rounded-md border border-border text-sm flex items-center justify-center gap-1.5">
-              <Printer className="h-4 w-4"/> Print
-            </button>
-            <button className="h-10 rounded-md border border-border text-sm flex items-center justify-center gap-1.5">
-              <Mail className="h-4 w-4"/> Email
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>);
+    );
 }
 
 function Row({ label, value, muted, bold }) {
-    return (<div className="flex justify-between">
-      <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
-      <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
-    </div>);
+    return (
+        <div className="flex justify-between">
+            <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
+            <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
+        </div>
+    );
+}
+
+// API Functions
+async function apiFetch(path, options = {}) {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: getAuthHeaders(options.headers),
+    });
+    return readApiResponse(res);
+}
+
+function getAuthHeaders(headers = {}) {
+    const accessToken = localStorage.getItem("accessToken");
+    return {
+        "Content-Type": "application/json",
+        ...headers,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    };
+}
+
+async function readApiResponse(res) {
+    const text = await res.text();
+    
+    if (!res.ok) {
+        let errorMessage = text || "Request failed.";
+        try {
+            const parsed = JSON.parse(text);
+            errorMessage = parsed.message || parsed.Message || parsed.title || errorMessage;
+        } catch {
+            // Plain-text error
+        }
+        throw new Error(errorMessage);
+    }
+    
+    if (!text) return null;
+    
+    try {
+        return JSON.parse(text);
+    } catch {
+        return text;
+    }
+}
+
+// API endpoint functions
+function getCustomers() {
+    return apiFetch("/customers");
+}
+
+function getParts() {
+    return apiFetch("/parts");
+}
+
+function getServices() {
+    return apiFetch("/services");
+}
+
+function getVehicles(customerId) {
+    return apiFetch(`/vehicle/customer/${customerId}`);
+}
+
+function getBookingsByCustomer(customerId) {
+    return apiFetch(`/bookings/customer/${customerId}`);
+}
+
+function createSale(data) {
+    return apiFetch("/sales", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
+}
+
+function sendInvoiceEmail(salesId, recipientEmail) {
+    return apiFetch(`/sales/${salesId}/send-invoice`, {
+        method: "POST",
+        body: JSON.stringify({ salesId, recipientEmail }),
+    });
+}
+
+function getInvoice(salesId) {
+    return apiFetch(`/sales/${salesId}/invoice`);
 }
 
 export default SalesPage;

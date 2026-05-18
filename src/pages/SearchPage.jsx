@@ -114,22 +114,13 @@ function SearchPage() {
               </thead>
               <tbody>
                 {customers.map((c) => (
-                  <tr
-                    key={c.customerId}
-                    className="border-t border-border hover:bg-surface"
-                  >
-                    <td className="px-6 py-3 font-mono text-xs">
-                      {c.customerId}
-                    </td>
+                  <tr key={c.customerId} className="border-t border-border hover:bg-surface">
+                    <td className="px-6 py-3 font-mono text-xs">{c.customerId}</td>
                     <td className="px-6 py-3 font-medium">
                       {c.firstName} {c.lastName}
                     </td>
-                    <td className="px-6 py-3 font-mono text-xs">
-                      {c.phoneNumber}
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground">
-                      {c.email}
-                    </td>
+                    <td className="px-6 py-3 font-mono text-xs">{c.phoneNumber}</td>
+                    <td className="px-6 py-3 text-muted-foreground">{c.email}</td>
                     <td className="px-6 py-3 text-muted-foreground">
                       {c.vehicles?.length || 0}
                     </td>
@@ -138,10 +129,7 @@ function SearchPage() {
 
                 {!loading && customers.length === 0 && (
                   <tr>
-                    <td
-                      colSpan="5"
-                      className="px-6 py-8 text-center text-muted-foreground"
-                    >
+                    <td colSpan="5" className="px-6 py-8 text-center text-muted-foreground">
                       Search customer data from backend.
                     </td>
                   </tr>
@@ -165,32 +153,20 @@ function SearchPage() {
               </thead>
               <tbody>
                 {vehicles.map((v) => (
-                  <tr
-                    key={v.vehicleId}
-                    className="border-t border-border hover:bg-surface"
-                  >
-                    <td className="px-6 py-3 font-mono text-xs">
-                      {v.vehicleNumber}
-                    </td>
+                  <tr key={v.vehicleId} className="border-t border-border hover:bg-surface">
+                    <td className="px-6 py-3 font-mono text-xs">{v.vehicleNumber}</td>
                     <td className="px-6 py-3 font-medium">
                       {v.brand} {v.model}
                     </td>
                     <td className="px-6 py-3">{v.year}</td>
-                    <td className="px-6 py-3 text-muted-foreground">
-                      {v.color}
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground">
-                      {v.customerName}
-                    </td>
+                    <td className="px-6 py-3 text-muted-foreground">{v.color}</td>
+                    <td className="px-6 py-3 text-muted-foreground">{v.customerName}</td>
                   </tr>
                 ))}
 
                 {!loading && vehicles.length === 0 && (
                   <tr>
-                    <td
-                      colSpan="5"
-                      className="px-6 py-8 text-center text-muted-foreground"
-                    >
+                    <td colSpan="5" className="px-6 py-8 text-center text-muted-foreground">
                       No vehicle results yet.
                     </td>
                   </tr>
@@ -214,15 +190,10 @@ function SearchPage() {
               </thead>
               <tbody>
                 {fp.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="border-t border-border hover:bg-surface"
-                  >
+                  <tr key={p.id} className="border-t border-border hover:bg-surface">
                     <td className="px-6 py-3 font-mono text-xs">{p.id}</td>
                     <td className="px-6 py-3 font-medium">{p.name}</td>
-                    <td className="px-6 py-3 text-muted-foreground">
-                      {p.brand}
-                    </td>
+                    <td className="px-6 py-3 text-muted-foreground">{p.brand}</td>
                     <td className="px-6 py-3 text-right">{p.stock}</td>
                     <td className="px-6 py-3 text-right font-mono">
                       Rs. {p.price.toLocaleString()}

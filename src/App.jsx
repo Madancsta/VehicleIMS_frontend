@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "./components/AppShell.jsx";
 
-import AdminDashboard from "./pages/AdminDashboard.jsx";
-// import BookingPage from "./pages/BookingPage.jsx";
+import AdminDashboardPage from "./pages/AdminDashboard.jsx";
 import BookingRequestReviewPage from "./pages/BookingRequestReviewPage.jsx";
 import CustomerDashboard from "./pages/CustomerDashboard.jsx";
-// import CustomerHistory from "./pages/CustomerHistory.jsx";
+import CustomerDetails from "./pages/CustomerDetails.jsx";
+import CustomerHistory from "./pages/CustomerHistory.jsx";
 import CustomerRegister from "./pages/CustomerRegister.jsx";
 import CustomersReport from "./pages/CustomersReport.jsx";
 import HistoryPage from "./pages/HistoryPage.jsx";
@@ -14,40 +14,41 @@ import LoginPage from "./pages/LoginPage.jsx";
 import PartsPage from "./pages/PartsPage.jsx";
 import ProfileVehiclePage from "./pages/ProfileVehiclePage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
-import StaffCustomerRegister from "./pages/StaffCustomerRegister.jsx";
-import ReportsPage from "./pages/ReportPage.jsx";
+import ReportPage from "./pages/ReportPage.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
-// import StaffDashboard from "./pages/StaffDashboard.jsx";
+import StaffCustomerRegister from "./pages/StaffCustomerRegister.jsx";
+import StaffDashboardPage from "./pages/SatffDashboard.jsx";
 import StaffPage from "./pages/StaffPage.jsx";
 import VendorsPage from "./pages/VendorsPage.jsx";
-import CustomerDetails from "./pages/CustomerDetails.jsx";
 
 import "./style.css";
 
 const pages = {
   "/": LoginPage,
   "/register": CustomerRegister,
-  "/admin": AdminDashboard,
+
+  "/admin": AdminDashboardPage,
   "/admin/customers-report": CustomersReport,
+  "/admin/customer-details": CustomerDetails,
   "/admin/parts": PartsPage,
   "/admin/purchases": PurchasesPage,
-  "/admin/reports": ReportsPage,
+  "/admin/reports": ReportPage,
   "/admin/staff": StaffPage,
   "/admin/vendors": VendorsPage,
+
   "/customer": CustomerDashboard,
   "/customer/dashboard": CustomerDashboard,
   "/customer/history": HistoryPage,
   "/customer/profile": ProfileVehiclePage,
   "/customer/register": CustomerRegister,
   "/customer/service": BookingRequestReviewPage,
-  // "/staff": StaffDashboard,
-  "/staff": SalesPage,
+
+  "/staff": StaffDashboardPage,
   "/staff/customer-register": StaffCustomerRegister,
-  // "/staff/customers": CustomerHistory,
+  "/staff/customers": CustomerHistory,
   "/staff/sales": SalesPage,
   "/staff/search": SearchPage,
-  "/admin/customer-details": CustomerDetails,
 };
 
 function roleByPath(path) {
@@ -76,12 +77,10 @@ export default function App() {
     };
   }, []);
 
-  // Check if user is logged in
   const token = localStorage.getItem("token");
   const role = roleByPath(path);
   const isProtectedRoute = role !== null && path !== "/" && path !== "/register";
 
-  // Redirect to login if not authenticated
   if (isProtectedRoute && !token) {
     window.location.href = "/";
     return null;
