@@ -100,15 +100,9 @@ export default function CustomerLayout({ children }) {
   const sidebarContent = (
     <>
       <div className="flex items-center justify-between border-b border-sidebar-border px-6 py-6">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-            <img src={logo} alt="Gearix" className="h-5 w-5" />
+        <div className="flex items-center">
+            <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
           </div>
-          <div>
-            <div className="font-display text-lg font-bold tracking-tight">Gearix</div>
-            <div className="text-[10px] uppercase tracking-widest opacity-60">customer panel</div>
-          </div>
-        </div>
         <button
           type="button"
           onClick={() => setMobileNavOpen(false)}
@@ -119,7 +113,7 @@ export default function CustomerLayout({ children }) {
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = path === item.path;
@@ -141,13 +135,13 @@ export default function CustomerLayout({ children }) {
         })}
       </nav>
 
-      <div className="border-t border-sidebar-border p-3">
+      <div className="p-3 border-t border-sidebar-border">
         <Link
           to="/"
           onClick={handleSignOut}
-          className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-sidebar-accent/60"
+          className="group flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors hover:!text-red-500"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 group-hover:text-red-500 transition-colors" />
           Sign out
         </Link>
       </div>
@@ -156,7 +150,7 @@ export default function CustomerLayout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="hidden w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
         {sidebarContent}
       </aside>
 
@@ -174,7 +168,7 @@ export default function CustomerLayout({ children }) {
         </>
       )}
 
-      <div className="relative flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col lg:ml-64">
         {/* Notification + Profile */}
         <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:gap-3 lg:right-8 lg:top-10">
           <button

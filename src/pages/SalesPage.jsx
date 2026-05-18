@@ -392,12 +392,24 @@ function SalesPage() {
                                 className="w-full h-10 px-3 rounded-md border border-input bg-background"
                             >
                                 <option value="">Select Existing Booking</option>
-                                {bookings.map(b => (
-                                    <option key={b.bookingId} value={b.bookingId}>
-                                        Booking #{b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
-                                    </option>
-                                ))}
+                                {bookings
+                                    .filter(b => {
+                                        const status = b.bookingStatus || b.status;
+                                        return status === "Pending" || status === "Confirmed" || status === 0 || status === 1;
+                                    })
+                                    .map(b => (
+                                        <option key={b.bookingId} value={b.bookingId}>
+                                            Booking #{b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
+                                        </option>
+                                    ))
+                                }
                             </select>
+                            {bookings.filter(b => {
+                                const status = b.bookingStatus || b.status;
+                                return status === "Pending" || status === "Confirmed" || status === 0 || status === 1;
+                            }).length === 0 && (
+                                <p className="text-sm text-muted-foreground mt-2">No bookings available.</p>
+                            )}
                         </div>
                     )}
                     
