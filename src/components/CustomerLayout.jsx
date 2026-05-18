@@ -17,20 +17,21 @@ export default function CustomerLayout({ children }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState({ lowStockCount: 0, unpaidCreditCount: 0 });
+  const [summary, setSummary] = useState({ totalUnread: 0 });
 
   const token = localStorage.getItem("accessToken");
 
+  // Fetch customer notifications from the customer endpoint
   const fetchNotifications = async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/notification/all`, {
+      const response = await fetch(`${API_BASE_URL}/customer/notifications`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data);
+        setNotifications(data.notifications || []);
       }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
@@ -39,15 +40,18 @@ export default function CustomerLayout({ children }) {
     }
   };
 
+  // Fetch customer notification summary
   const fetchSummary = async () => {
     if (!token) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/notification/summary`, {
+      const response = await fetch(`${API_BASE_URL}/customer/notifications/summary`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setSummary(data);
+        setSummary({
+          totalUnread: data.totalUnread || 0
+        });
       }
     } catch (err) {
       console.error("Failed to fetch summary:", err);
@@ -89,11 +93,12 @@ export default function CustomerLayout({ children }) {
     setMobileNavOpen(false);
   };
 
-  const totalUnread = (summary.lowStockCount || 0) + (summary.unpaidCreditCount || 0);
+  const totalUnread = summary.totalUnread || 0;
 
   const getNotificationIcon = (type) => {
-    if (type === "LowStock") return "📦";
-    if (type === "UnpaidCredit") return "💰";
+    if (type === "Booking") return "📅";
+    if (type === "PartRequest") return "🔧";
+    if (type === "Service") return "✅";
     return "🔔";
   };
 
@@ -234,9 +239,16 @@ export default function CustomerLayout({ children }) {
 
 function NotifDropdown({ onClose, notifications, loading }) {
   const getNotificationIcon = (type) => {
-    if (type === "LowStock") return "📦";
-    if (type === "UnpaidCredit") return "💰";
+    if (type === "Booking") return "📅";
+    if (type === "PartRequest") return "🔧";
+    if (type === "Service") return "✅";
     return "🔔";
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
 
   return (
@@ -268,7 +280,16 @@ function NotifDropdown({ onClose, notifications, loading }) {
                     <div className="text-sm font-medium">{n.title}</div>
                     <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      {n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}
+                      {n.createdAt ? formatDate(n.createdAt) : ""}
+                      {n.status && (
+                        <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
+                          n.status === "Completed" || n.status === "Approved" 
+                            ? "bg-green-100 text-green-700" 
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}>
+                          {n.status}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
