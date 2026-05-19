@@ -1,4 +1,4 @@
-import { Bell, Calendar, History, LayoutDashboard, LogOut, Menu, Wrench, X } from "lucide-react";
+import { Bell, Calendar, History, LayoutDashboard, LogOut, Menu, Wrench, X, CheckCircle, User, MessageSquare, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "./Link";
 import logo from "../assets/gear.png";
@@ -16,13 +16,12 @@ export default function CustomerLayout({ children }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [displayCount, setDisplayCount] = useState(5); // Show 5 initially
+  const [displayCount, setDisplayCount] = useState(5);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState({ totalUnread: 0 });
 
   const token = localStorage.getItem("accessToken");
 
-  // Fetch customer notifications from the customer endpoint
   const fetchNotifications = async () => {
     if (!token) return;
     setLoading(true);
@@ -41,7 +40,6 @@ export default function CustomerLayout({ children }) {
     }
   };
 
-  // Fetch customer notification summary
   const fetchSummary = async () => {
     if (!token) return;
     try {
@@ -97,10 +95,10 @@ export default function CustomerLayout({ children }) {
   const totalUnread = summary.totalUnread || 0;
 
   const getNotificationIcon = (type) => {
-    if (type === "Booking") return "📅";
-    if (type === "PartRequest") return "🔧";
-    if (type === "Service") return "✅";
-    return "🔔";
+    if (type === "Booking") return <Calendar className="h-4 w-4" />;
+    if (type === "PartRequest") return <Wrench className="h-4 w-4" />;
+    if (type === "Service") return <CheckCircle className="h-4 w-4" />;
+    return <Bell className="h-4 w-4" />;
   };
 
   const handleShowMore = () => {
@@ -118,8 +116,8 @@ export default function CustomerLayout({ children }) {
     <>
       <div className="flex items-center justify-between border-b border-sidebar-border px-6 py-6">
         <div className="flex items-center">
-            <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
-          </div>
+          <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
+        </div>
         <button
           type="button"
           onClick={() => setMobileNavOpen(false)}
@@ -186,7 +184,6 @@ export default function CustomerLayout({ children }) {
       )}
 
       <div className="relative flex min-w-0 flex-1 flex-col lg:ml-64">
-        {/* Notification + Profile */}
         <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:gap-3 lg:right-8 lg:top-10">
           <button
             type="button"
@@ -213,6 +210,7 @@ export default function CustomerLayout({ children }) {
               onShowLess={handleShowLess}
               currentCount={displayCount}
               totalCount={notifications.length}
+              getNotificationIcon={getNotificationIcon}
             />
           )}
 
@@ -225,13 +223,12 @@ export default function CustomerLayout({ children }) {
             }`}
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              C
+              <User className="h-4 w-4" />
             </div>
             <div className="hidden text-sm font-medium sm:block">Profile</div>
           </Link>
         </div>
 
-        {/* Mobile menu button */}
         <button
           type="button"
           onClick={() => setMobileNavOpen(true)}
@@ -252,27 +249,14 @@ export default function CustomerLayout({ children }) {
 function NotifDropdown({ 
   onClose, 
   notifications, 
-  allNotifications, 
   loading, 
   hasMore, 
   onShowMore, 
   onShowLess,
   currentCount,
-  totalCount 
+  totalCount,
+  getNotificationIcon
 }) {
-  const getNotificationIcon = (type) => {
-    if (type === "Booking") return "📅";
-    if (type === "PartRequest") return "🔧";
-    if (type === "Service") return "✅";
-    return "🔔";
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
-
   const formatTime = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -313,11 +297,13 @@ function NotifDropdown({
             <>
               {notifications.map((n, i) => (
                 <div key={i} className="border-b border-border p-3 last:border-0 hover:bg-surface transition-colors">
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg">{getNotificationIcon(n.type)}</span>
-                    <div className="flex-1">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface shrink-0">
+                      {getNotificationIcon(n.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-medium">{n.title}</div>
+                        <div className="text-sm font-medium truncate">{n.title}</div>
                         <div className="text-xs text-muted-foreground whitespace-nowrap">
                           {formatTime(n.createdAt)}
                         </div>
@@ -337,24 +323,25 @@ function NotifDropdown({
                 </div>
               ))}
               
-              {/* Show More / Show Less Buttons */}
-              <div className="p-2 border-t border-border">
-                {hasMore ? (
+              {hasMore ? (
+                <div className="p-2 border-t border-border">
                   <button
                     onClick={onShowMore}
                     className="w-full text-center text-xs text-primary py-2 hover:underline"
                   >
                     Show more ({currentCount} of {totalCount})
                   </button>
-                ) : totalCount > 5 ? (
+                </div>
+              ) : totalCount > 5 ? (
+                <div className="p-2 border-t border-border">
                   <button
                     onClick={onShowLess}
                     className="w-full text-center text-xs text-muted-foreground py-2 hover:underline"
                   >
                     Show less
                   </button>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </>
           )}
         </div>
