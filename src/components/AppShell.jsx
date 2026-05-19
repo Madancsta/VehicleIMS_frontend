@@ -117,19 +117,84 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
     setMobileNavOpen(false);
   }, [currentPath]);
 
-  const totalPages = Math.ceil(notifications.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentNotifications = notifications.slice(startIndex, startIndex + itemsPerPage);
+  const totalUnread =
+    summary.totalUnread ?? (summary.lowStockCount || 0) + (summary.unpaidCreditCount || 0);
 
-  const goToNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  const refreshNotifications = async () => {
+    await Promise.all([fetchNotifications(), fetchSummary()]);
   };
 
-  const goToPrevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  const markNotificationAsRead = async (notification) => {
+    if (!token || !notification?.id || notification.isRead) return;
+
+    try {
+      const response = await fetch(`${API_URL}/${notification.id}/read`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setNotifications((current) =>
+          current.map((item) =>
+            item.id === notification.id && item.type === notification.type
+              ? { ...item, isRead: true }
+              : item,
+          ),
+        );
+        setSummary((current) => {
+          const lowStockUnread =
+            notification.type === "LowStock" || notification.type === "OutOfStock";
+          const unpaidCreditUnread = notification.type === "UnpaidCredit";
+
+          return {
+            ...current,
+            lowStockCount: lowStockUnread
+              ? Math.max((current.lowStockCount || 0) - 1, 0)
+              : current.lowStockCount,
+            unpaidCreditCount: unpaidCreditUnread
+              ? Math.max((current.unpaidCreditCount || 0) - 1, 0)
+              : current.unpaidCreditCount,
+            totalUnread: Math.max((current.totalUnread || totalUnread || 0) - 1, 0),
+          };
+        });
+        await refreshNotifications();
+      } else {
+        console.error("Failed to mark notification as read:", await response.text());
+      }
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
   };
 
-  const totalUnread = (summary.lowStockCount || 0) + (summary.unpaidCreditCount || 0);
+  const markAllNotificationsAsRead = async () => {
+    if (!token || notifications.length === 0) return;
+
+    try {
+      const response = await fetch(`${API_URL}/read-all`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
+        setSummary((current) => ({
+          ...current,
+          lowStockCount: 0,
+          unpaidCreditCount: 0,
+          totalUnread: 0,
+        }));
+        await refreshNotifications();
+      } else {
+        console.error("Failed to mark all notifications as read:", await response.text());
+      }
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
+  };
 
   const handleSignOut = () => {
     [
@@ -256,10 +321,8 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
               allNotifications={notifications}
               loading={loading}
               formatTime={formatTime}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onNextPage={goToNextPage}
-              onPrevPage={goToPrevPage}
+              onMarkAsRead={markNotificationAsRead}
+              onMarkAllAsRead={markAllNotificationsAsRead}
             />
           )}
 
@@ -277,16 +340,13 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
   );
 }
 
-function NotifDropdown({ 
-  onClose, 
-  notifications = [], 
-  allNotifications = [],
-  loading = false, 
+function NotifDropdown({
+  onClose,
+  notifications = [],
+  loading = false,
   formatTime,
-  currentPage,
-  totalPages,
-  onNextPage,
-  onPrevPage
+  onMarkAsRead,
+  onMarkAllAsRead,
 }) {
   const getIconByType = (type) => {
     if (type === "LowStock") return <PackageOpen className="h-4 w-4" />;
@@ -313,15 +373,25 @@ function NotifDropdown({
           ) : notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
           ) : (
-            notifications.map((n, i) => (
-              <div key={i} className="p-3 border-b border-border last:border-0 hover:bg-surface transition-colors">
+            notifications.map((n) => (
+              <button
+                key={`${n.type}-${n.id}`}
+                type="button"
+                onClick={() => onMarkAsRead?.(n)}
+                className={`w-full p-3 text-left border-b border-border last:border-0 hover:bg-surface transition-colors ${
+                  n.isRead ? "opacity-70" : "bg-surface/40"
+                }`}
+              >
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface shrink-0">
                     {getIconByType(n.type)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-medium">{n.title}</div>
+                      <div className="flex min-w-0 items-center gap-2">
+                        {!n.isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-destructive" />}
+                        <div className="truncate text-sm font-medium">{n.title}</div>
+                      </div>
                       <div className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatTime(n.createdAt)}
                       </div>
@@ -329,43 +399,20 @@ function NotifDropdown({
                     <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
                   </div>
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>
 
-        {/* Simple Pagination - Just Icons */}
-        {totalPages > 1 && (
-          <div className="p-2 border-t border-border flex items-center justify-center gap-4">
-            <button
-              onClick={onPrevPage}
-              disabled={currentPage === 1}
-              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
-                currentPage === 1
-                  ? "text-muted-foreground cursor-not-allowed opacity-50"
-                  : "hover:bg-surface text-foreground"
-              }`}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            
-            <span className="text-xs text-muted-foreground">
-              {currentPage} / {totalPages}
-            </span>
-            
-            <button
-              onClick={onNextPage}
-              disabled={currentPage === totalPages}
-              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
-                currentPage === totalPages
-                  ? "text-muted-foreground cursor-not-allowed opacity-50"
-                  : "hover:bg-surface text-foreground"
-              }`}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        <div className="p-2 border-t border-border">
+          <button
+            type="button"
+            onClick={onMarkAllAsRead}
+            className="w-full text-center text-xs text-muted-foreground py-1 hover:text-foreground transition-colors"
+          >
+            Mark all as read
+          </button>
+        </div>
       </div>
     </>
   );
