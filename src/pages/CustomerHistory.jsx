@@ -1,6 +1,6 @@
 import { PageHeader } from "../components/PageHeader";
 import { useEffect, useState } from "react";
-import { ChevronRight, Phone, Mail, MapPin, Car, ShoppingBag, Calendar, CreditCard, Receipt } from "lucide-react";
+import { ChevronRight, Phone, Mail, MapPin, Car, ShoppingBag, Calendar, CreditCard, Receipt, CheckCircle } from "lucide-react";
 import { apiFetch } from '../api/clientApi';
 
 // API functions
@@ -16,6 +16,14 @@ function getCustomerPurchaseHistory(customerId) {
   return apiFetch(`/customer/purchase-history/${customerId}`);
 }
 
+function updateSalePaymentStatus(salesId, paymentStatus, paymentMethod) {
+  return apiFetch(`/sales/${salesId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paymentStatus, paymentMethod }),
+  });
+}
+
 function CustomerHistory() {
   const [customers, setCustomers] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -25,6 +33,7 @@ function CustomerHistory() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState("");
+  const [updatingSaleId, setUpdatingSaleId] = useState(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -85,6 +94,33 @@ function CustomerHistory() {
       // Don't set main error, just log it
     } finally {
       setHistoryLoading(false);
+    }
+  };
+
+  // NEW: Update payment status handler
+  const handleUpdatePaymentStatus = async (saleId, currentStatus) => {
+    // Only allow updating from Pending to Completed
+    if (currentStatus !== "Pending") {
+      alert("Only pending payments can be marked as completed.");
+      return;
+    }
+
+    if (!window.confirm("Mark this sale as paid? This will update customer credit balance and loyalty points.")) {
+      return;
+    }
+
+    try {
+      setUpdatingSaleId(saleId);
+      // PaymentStatus enum: 0 = Pending, 1 = Completed
+      await updateSalePaymentStatus(saleId, 1, "credit");
+      alert("Payment status updated successfully!");
+      // Refresh purchase history to show the updated status
+      await fetchPurchaseHistory(selectedId);
+    } catch (err) {
+      console.error("Failed to update payment status:", err);
+      alert(err.message || "Failed to update payment status. Please try again.");
+    } finally {
+      setUpdatingSaleId(null);
     }
   };
 
@@ -325,6 +361,26 @@ function CustomerHistory() {
                             {order.paymentMethod}
                           </div>
                         </div>
+
+                        {/* NEW: Action button for pending payments */}
+                        {order.paymentStatus === "Pending" && (
+                          <div className="mt-3 flex justify-end">
+                            <button
+                              onClick={() => handleUpdatePaymentStatus(order.salesId, order.paymentStatus)}
+                              disabled={updatingSaleId === order.salesId}
+                              className="flex items-center gap-1 text-sm bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-50"
+                            >
+                              {updatingSaleId === order.salesId ? (
+                                "Updating..."
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-4 w-4" />
+                                  Mark as Paid
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
 
                         {order.serviceInfo && (
                           <div className="mt-3 text-sm bg-surface rounded-md p-3">

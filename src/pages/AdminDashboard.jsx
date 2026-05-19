@@ -41,6 +41,7 @@ function AdminDashboard() {
     useEffect(() => {
         fetchDashboardData();
     }, []);
+    
 
     const { stats, monthlyRevenue, alerts, recentSales } = dashboardData;
     
@@ -104,7 +105,7 @@ function AdminDashboard() {
             </div>
         );
     }
-
+    console.log("Monthly revenue data:", monthlyRevenue);
     return (
         <div>
             <PageHeader 
@@ -162,22 +163,43 @@ function AdminDashboard() {
                             No revenue data available
                         </div>
                     ) : (
-                        <div className="flex items-end gap-4 h-56">
-                            {monthlyRevenue.map((m) => (
-                                <div key={m.month} className="flex-1 flex flex-col items-center gap-2">
-                                    <div className="w-full flex items-end gap-1 h-full">
-                                        <div 
-                                            className="flex-1 bg-primary rounded-t transition-all duration-500" 
-                                            style={{ height: `${(m.revenue / maxRev) * 100}%` }}
-                                        />
-                                        <div 
-                                            className="flex-1 bg-muted-foreground/40 rounded-t transition-all duration-500" 
-                                            style={{ height: `${(m.expenses / maxRev) * 100}%` }}
-                                        />
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">{m.month}</div>
+                        <div className="flex gap-2">
+                            {/* Y-Axis Labels */}
+                            <div className="flex flex-col justify-between text-xs text-muted-foreground text-right pr-2" style={{ height: '192px' }}>
+                                {[100, 75, 50, 25, 0].map((pct) => (
+                                    <span key={pct}>
+                                        {pct === 0 ? '0' : `${Math.round((maxRev * pct) / 100).toLocaleString()}`}
+                                    </span>
+                                ))}
+                            </div>
+
+                            {/* Chart Bars */}
+                            <div className="flex-1 relative">
+                                {/* Gridlines */}
+                                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none" style={{ height: '192px' }}>
+                                    {[100, 75, 50, 25, 0].map((pct) => (
+                                        <div key={pct} className="border-t border-border w-full" />
+                                    ))}
                                 </div>
-                            ))}
+
+                                <div className="flex items-end gap-4" style={{ height: '192px' }}>
+                                    {monthlyRevenue.map((m) => (
+                                        <div key={m.month} className="flex-1 flex flex-col items-center gap-2">
+                                            <div className="w-full flex items-end gap-1" style={{ height: '192px' }}>
+                                                <div
+                                                    className="flex-1 bg-primary rounded-t transition-all duration-500"
+                                                    style={{ height: `${(m.revenue / maxRev) * 100}%` }}
+                                                />
+                                                <div
+                                                    className="flex-1 bg-muted-foreground/40 rounded-t transition-all duration-500"
+                                                    style={{ height: `${(m.expenses / maxRev) * 100}%` }}
+                                                />
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">{m.month}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
