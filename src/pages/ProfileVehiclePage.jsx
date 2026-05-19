@@ -39,6 +39,18 @@ function ProfileVehiclePage() {
     loadProfile();
   }, [loadProfile]);
 
+  useEffect(() => {
+    if (!isSuccessMessage(message)) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setMessage((currentMessage) => (currentMessage === message ? "" : currentMessage));
+    }, 3000);
+
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
   function openAddVehicle() {
     setVehicleForm(toVehicleForm());
     setAddOpen(true);
@@ -412,10 +424,20 @@ function getVehicleValue(vehicle = {}, ...keys) {
 
 function MessageBox({ message }) {
   return (
-    <div className="mb-6 rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
+    <div className={`mb-6 rounded-md border p-4 text-sm ${messageClassName(message)}`}>
       {message}
     </div>
   );
+}
+
+function isSuccessMessage(message) {
+  return message.toLowerCase().includes("successfully");
+}
+
+function messageClassName(message) {
+  return isSuccessMessage(message)
+    ? "border-green-500 bg-green-50 text-green-700"
+    : "border-red-500 bg-red-50 text-red-700";
 }
 
 function getCustomerProfile(customerId) {

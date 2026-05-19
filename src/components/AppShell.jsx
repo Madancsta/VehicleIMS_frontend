@@ -17,6 +17,9 @@ import {
   User,
   Menu,
   X,
+  PackageOpen,
+  CreditCard,
+  AlertTriangle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -135,21 +138,36 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
     ].forEach((key) => localStorage.removeItem(key));
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
+
   const sidebarContent = (
     <>
       <div className="px-6 py-6 border-b border-sidebar-border flex items-center justify-between">
-  <div className="flex items-center">
-    <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
-  </div>
+        <div className="flex items-center">
+          <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
+        </div>
 
-  <button
-    onClick={() => setMobileNavOpen(false)}
-    className="lg:hidden h-8 w-8 rounded-md hover:bg-sidebar-accent/60 flex items-center justify-center"
-    aria-label="Close menu"
-  >
-    <X className="h-4 w-4" />
-  </button>
-</div>
+        <button
+          onClick={() => setMobileNavOpen(false)}
+          className="lg:hidden h-8 w-8 rounded-md hover:bg-sidebar-accent/60 flex items-center justify-center"
+          aria-label="Close menu"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {items.map((item) => {
@@ -175,13 +193,13 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
 
       <div className="p-3 border-t border-sidebar-border">
         <Link
-  to="/"
-  onClick={handleSignOut}
-  className="group flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors hover:!text-red-500"
->
-  <LogOut className="h-4 w-4 group-hover:text-red-500 transition-colors" />
-  Sign out
-</Link>
+          to="/"
+          onClick={handleSignOut}
+          className="group flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors hover:!text-red-500"
+        >
+          <LogOut className="h-4 w-4 group-hover:text-red-500 transition-colors" />
+          Sign out
+        </Link>
       </div>
     </>
   );
@@ -239,6 +257,7 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
               onClose={() => setNotifOpen(false)}
               notifications={notifications}
               loading={loading}
+              formatTime={formatTime}
             />
           )}
 
@@ -257,11 +276,12 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
   );
 }
 
-function NotifDropdown({ onClose, notifications = [], loading = false }) {
+function NotifDropdown({ onClose, notifications = [], loading = false, formatTime }) {
   const getIconByType = (type) => {
-    if (type === "LowStock") return "📦";
-    if (type === "UnpaidCredit") return "💰";
-    return "🔔";
+    if (type === "LowStock") return <PackageOpen className="h-4 w-4" />;
+    if (type === "OutOfStock") return <AlertTriangle className="h-4 w-4" />;
+    if (type === "UnpaidCredit") return <CreditCard className="h-4 w-4" />;
+    return <Bell className="h-4 w-4" />;
   };
 
   return (
@@ -284,15 +304,19 @@ function NotifDropdown({ onClose, notifications = [], loading = false }) {
             <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
           ) : (
             notifications.map((n, i) => (
-              <div key={i} className="p-3 border-b border-border last:border-0 hover:bg-surface">
-                <div className="flex items-start gap-2">
-                  <span className="text-lg">{getIconByType(n.type)}</span>
-
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{n.title}</div>
-
+              <div key={i} className="p-3 border-b border-border last:border-0 hover:bg-surface transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface shrink-0">
+                    {getIconByType(n.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-medium">{n.title}</div>
+                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatTime ? formatTime(n.createdAt) : n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}
+                      </div>
+                    </div>
                     <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
-
                     <div className="text-xs text-muted-foreground mt-2">
                       {n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}
                     </div>
@@ -304,7 +328,7 @@ function NotifDropdown({ onClose, notifications = [], loading = false }) {
         </div>
 
         <div className="p-2 border-t border-border">
-          <button className="w-full text-center text-xs text-muted-foreground py-1 hover:text-foreground">
+          <button className="w-full text-center text-xs text-muted-foreground py-1 hover:text-foreground transition-colors">
             Mark all as read
           </button>
         </div>

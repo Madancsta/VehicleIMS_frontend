@@ -1,6 +1,7 @@
-import { Bell, Calendar, History, LayoutDashboard, LogOut, Menu, Wrench, X } from "lucide-react";
+import { Bell, Calendar, History, LayoutDashboard, LogOut, Menu, Wrench, X, CheckCircle, User, MessageSquare, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "./Link";
+import { Modal, Field, inputCls } from "../components/Modal";
 import logo from "../assets/gear.png";
 
 const navItems = [
@@ -16,12 +17,12 @@ export default function CustomerLayout({ children }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [displayCount, setDisplayCount] = useState(5);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState({ totalUnread: 0 });
 
   const token = localStorage.getItem("accessToken");
 
-  // Fetch customer notifications from the customer endpoint
   const fetchNotifications = async () => {
     if (!token) return;
     setLoading(true);
@@ -40,7 +41,6 @@ export default function CustomerLayout({ children }) {
     }
   };
 
-  // Fetch customer notification summary
   const fetchSummary = async () => {
     if (!token) return;
     try {
@@ -96,18 +96,29 @@ export default function CustomerLayout({ children }) {
   const totalUnread = summary.totalUnread || 0;
 
   const getNotificationIcon = (type) => {
-    if (type === "Booking") return "📅";
-    if (type === "PartRequest") return "🔧";
-    if (type === "Service") return "✅";
-    return "🔔";
+    if (type === "Booking") return <Calendar className="h-4 w-4" />;
+    if (type === "PartRequest") return <Wrench className="h-4 w-4" />;
+    if (type === "Service") return <CheckCircle className="h-4 w-4" />;
+    return <Bell className="h-4 w-4" />;
   };
+
+  const handleShowMore = () => {
+    setDisplayCount(prev => prev + 5);
+  };
+
+  const handleShowLess = () => {
+    setDisplayCount(5);
+  };
+
+  const displayedNotifications = notifications.slice(0, displayCount);
+  const hasMore = displayCount < notifications.length;
 
   const sidebarContent = (
     <>
       <div className="flex items-center justify-between border-b border-sidebar-border px-6 py-6">
         <div className="flex items-center">
-            <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
-          </div>
+          <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
+        </div>
         <button
           type="button"
           onClick={() => setMobileNavOpen(false)}
@@ -174,7 +185,6 @@ export default function CustomerLayout({ children }) {
       )}
 
       <div className="relative flex min-w-0 flex-1 flex-col lg:ml-64">
-        {/* Notification + Profile */}
         <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:gap-3 lg:right-8 lg:top-10">
           <button
             type="button"
@@ -193,8 +203,15 @@ export default function CustomerLayout({ children }) {
           {notifOpen && (
             <NotifDropdown 
               onClose={() => setNotifOpen(false)} 
-              notifications={notifications}
+              notifications={displayedNotifications}
+              allNotifications={notifications}
               loading={loading}
+              hasMore={hasMore}
+              onShowMore={handleShowMore}
+              onShowLess={handleShowLess}
+              currentCount={displayCount}
+              totalCount={notifications.length}
+              getNotificationIcon={getNotificationIcon}
             />
           )}
 
@@ -207,13 +224,12 @@ export default function CustomerLayout({ children }) {
             }`}
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              C
+              <User className="h-4 w-4" />
             </div>
             <div className="hidden text-sm font-medium sm:block">Profile</div>
           </Link>
         </div>
 
-        {/* Mobile menu button */}
         <button
           type="button"
           onClick={() => setMobileNavOpen(true)}
@@ -231,18 +247,30 @@ export default function CustomerLayout({ children }) {
   );
 }
 
-function NotifDropdown({ onClose, notifications, loading }) {
-  const getNotificationIcon = (type) => {
-    if (type === "Booking") return "📅";
-    if (type === "PartRequest") return "🔧";
-    if (type === "Service") return "✅";
-    return "🔔";
-  };
-
-  const formatDate = (dateString) => {
+function NotifDropdown({ 
+  onClose, 
+  notifications, 
+  loading, 
+  hasMore, 
+  onShowMore, 
+  onShowLess,
+  currentCount,
+  totalCount,
+  getNotificationIcon
+}) {
+  const formatTime = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString();
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   };
 
   return (
@@ -253,30 +281,37 @@ function NotifDropdown({ onClose, notifications, loading }) {
         className="fixed inset-0 z-10"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-12 z-20 w-[calc(100vw-2rem)] max-w-sm rounded-md border border-border bg-card shadow-lg sm:w-80">
+      <div className="absolute right-0 top-12 z-20 w-[calc(100vw-2rem)] max-w-sm rounded-md border border-border bg-card shadow-lg sm:w-96">
         <div className="border-b border-border p-3 text-sm font-medium flex justify-between items-center">
           <span>Notifications</span>
-          {notifications.length > 0 && (
-            <span className="text-xs text-muted-foreground">{notifications.length} total</span>
+          {totalCount > 0 && (
+            <span className="text-xs text-muted-foreground">{totalCount} total</span>
           )}
         </div>
-        <div className="max-h-80 overflow-auto">
+        
+        <div className="max-h-96 overflow-auto">
           {loading ? (
             <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
           ) : notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
           ) : (
-            notifications.map((n, i) => (
-              <div key={i} className="border-b border-border p-3 last:border-0 hover:bg-surface">
-                <div className="flex items-start gap-2">
-                  <span className="text-lg">{getNotificationIcon(n.type)}</span>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{n.title}</div>
-                    <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {n.createdAt ? formatDate(n.createdAt) : ""}
+            <>
+              {notifications.map((n, i) => (
+                <div key={i} className="border-b border-border p-3 last:border-0 hover:bg-surface transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface shrink-0">
+                      {getNotificationIcon(n.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-medium truncate">{n.title}</div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">
+                          {formatTime(n.createdAt)}
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
                       {n.status && (
-                        <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
+                        <span className={`inline-block mt-2 px-1.5 py-0.5 rounded text-xs ${
                           n.status === "Completed" || n.status === "Approved" 
                             ? "bg-green-100 text-green-700" 
                             : "bg-yellow-100 text-yellow-700"
@@ -287,9 +322,35 @@ function NotifDropdown({ onClose, notifications, loading }) {
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+              
+              {hasMore ? (
+                <div className="p-2 border-t border-border">
+                  <button
+                    onClick={onShowMore}
+                    className="w-full text-center text-xs text-primary py-2 hover:underline"
+                  >
+                    Show more ({currentCount} of {totalCount})
+                  </button>
+                </div>
+              ) : totalCount > 5 ? (
+                <div className="p-2 border-t border-border">
+                  <button
+                    onClick={onShowLess}
+                    className="w-full text-center text-xs text-muted-foreground py-2 hover:underline"
+                  >
+                    Show less
+                  </button>
+                </div>
+              ) : null}
+            </>
           )}
+        </div>
+        
+        <div className="p-2 border-t border-border">
+          <button className="w-full text-center text-xs text-muted-foreground py-1 hover:text-foreground transition-colors">
+            Mark all as read
+          </button>
         </div>
       </div>
     </>
