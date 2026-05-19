@@ -12,7 +12,7 @@ import {
 import { Link } from "../components/Link";
 import CustomerLayout from "../components/CustomerLayout";
 import { PageHeader } from "../components/PageHeader";
-import { apiFetch } from '../api/clientApi';
+import { apiFetch } from "../api/clientApi";
 
 function CustomerDashboard() {
   const customerId = localStorage.getItem("customerId");
@@ -362,7 +362,6 @@ function formatRequestStatus(value) {
     1: "Pending",
     2: "Approved",
     3: "Rejected",
-    4: "Completed",
   };
 
   if (value === "" || value === null || value === undefined) {

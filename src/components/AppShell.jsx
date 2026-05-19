@@ -19,7 +19,8 @@ import {
   X,
   PackageOpen,
   CreditCard,
-  AlertTriangle
+  AlertTriangle,
+  PackageSearch,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -28,6 +29,7 @@ const navByRole = {
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { to: "/admin/staff", label: "Staff", icon: Users },
     { to: "/admin/parts", label: "Parts", icon: Package },
+    { to: "/admin/part-requests", label: "Part Requests", icon: PackageSearch },
     { to: "/admin/vendors", label: "Vendors", icon: Truck },
     { to: "/admin/purchases", label: "Purchase Invoices", icon: FileText },
     { to: "/admin/reports", label: "Financial Reports", icon: BarChart3 },
@@ -36,6 +38,7 @@ const navByRole = {
   staff: [
     { to: "/staff", label: "Dashboard", icon: LayoutDashboard },
     { to: "/staff/sales", label: "Sales / Invoice", icon: ShoppingCart },
+    { to: "/staff/part-requests", label: "Part Requests", icon: PackageSearch },
     { to: "/staff/customer-register", label: "Register Customer", icon: UserPlus },
     { to: "/staff/search", label: "Search", icon: Search },
     { to: "/staff/customers", label: "Customer History", icon: History },
@@ -226,8 +229,8 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
 
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
   };
 
   const sidebarContent = (
@@ -349,7 +352,9 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
           </div>
         </div>
 
-        <main className="flex-1 overflow-y-auto px-4 pb-4 pt-20 sm:px-6 sm:pb-6 sm:pt-20 lg:px-8 lg:pb-8 lg:pt-10">{children}</main>
+        <main className="flex-1 overflow-y-auto px-4 pb-4 pt-20 sm:px-6 sm:pb-6 sm:pt-20 lg:px-8 lg:pb-8 lg:pt-10">
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -405,11 +410,17 @@ function NotifDropdown({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
-                        {!n.isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-destructive" />}
+                        {!n.isRead && (
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-destructive" />
+                        )}
                         <div className="truncate text-sm font-medium">{n.title}</div>
                       </div>
                       <div className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatTime ? formatTime(n.createdAt) : n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}
+                        {formatTime
+                          ? formatTime(n.createdAt)
+                          : n.createdAt
+                            ? new Date(n.createdAt).toLocaleString()
+                            : ""}
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">{n.message}</div>

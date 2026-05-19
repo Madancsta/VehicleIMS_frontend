@@ -369,7 +369,9 @@ function BookingRequestReviewPage() {
       />
 
       {message && (
-        <div className={`mb-6 rounded-lg border p-4 text-sm shadow-sm ${messageClassName(message)}`}>
+        <div
+          className={`mb-6 rounded-lg border p-4 text-sm shadow-sm ${messageClassName(message)}`}
+        >
           {message}
         </div>
       )}
@@ -728,7 +730,7 @@ function BookingRequestReviewPage() {
 
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          Number(request.status) === 4
+                          Number(request.status) === 2
                             ? "bg-success/15 text-success"
                             : Number(request.status) === 3
                               ? "bg-destructive/15 text-destructive"
@@ -1224,7 +1226,6 @@ function formatRequestStatus(value) {
     1: "Pending",
     2: "Approved",
     3: "Rejected",
-    4: "Completed",
   };
 
   if (value === "" || value === null || value === undefined) {

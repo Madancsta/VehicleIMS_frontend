@@ -12,6 +12,7 @@ import CustomersReport from "./pages/CustomersReport.jsx";
 import HistoryPage from "./pages/HistoryPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import PartsPage from "./pages/PartsPage.jsx";
+import PartRequestsPage from "./pages/PartRequestsPage.jsx";
 import ProfileVehiclePage from "./pages/ProfileVehiclePage.jsx";
 import PurchasesPage from "./pages/PurchasesPage.jsx";
 import ReportPage from "./pages/ReportPage.jsx";
@@ -23,6 +24,7 @@ import StaffPage from "./pages/StaffPage.jsx";
 import VendorsPage from "./pages/VendorsPage.jsx";
 
 import "./style.css";
+import AdminPartRequestsPage from "./pages/PartRequestsPage.jsx";
 
 const pages = {
   "/": LoginPage,
@@ -36,6 +38,7 @@ const pages = {
   "/admin/reports": ReportPage,
   "/admin/staff": StaffPage,
   "/admin/vendors": VendorsPage,
+  "/admin/part-requests": PartRequestsPage,
 
   "/customer": CustomerDashboard,
   "/customer/dashboard": CustomerDashboard,
@@ -49,6 +52,7 @@ const pages = {
   "/staff/customers": CustomerHistory,
   "/staff/sales": SalesPage,
   "/staff/search": SearchPage,
+  "/staff/part-requests": PartRequestsPage,
 };
 
 function roleByPath(path) {
