@@ -1,6 +1,7 @@
 import { Link } from "../components/Link";
 import loginImage from "../assets/register_image.jpeg";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL).replace(
     /\/$/,
@@ -12,6 +13,7 @@ function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -95,12 +97,17 @@ function LoginPage() {
     return (
         <div className="min-h-screen grid lg:grid-cols-2">
             {/* Left side - image */}
-            <div className="relative hidden min-h-screen overflow-hidden bg-[#DADDD8] lg:block">
-                <img src={loginImage} alt="Workshop" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1C1C1C]/90 via-[#1C1C1C]/35 to-transparent" />
-                <div className="absolute bottom-12 left-12 right-12 text-[#FAFAFF]">
-                    <h2 className="max-w-xl text-5xl font-extrabold leading-tight">Welcome back to VehicleIMS.</h2>
-                    <p className="mt-5 max-w-lg text-base leading-7 text-white/75">
+            <div className="relative hidden min-h-screen overflow-hidden bg-[#1a1a2e] lg:block">
+                <img 
+                    src={loginImage} 
+                    alt="Auto Repair Workshop" 
+                    className="h-full w-full object-cover opacity-90" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a15]/95 via-[#1a1a2e]/70 to-transparent" />
+                <div className="absolute bottom-12 left-12 right-12 text-white">
+                
+                    <h2 className="max-w-xl text-5xl font-extrabold leading-tight">Welcome back to Gearix</h2>
+                    <p className="mt-5 max-w-lg text-base leading-7 text-white/80">
                         Log in to manage your vehicles, bookings, part requests, and service reviews all in one place.
                     </p>
                 </div>
@@ -135,20 +142,30 @@ function LoginPage() {
 
                         <div>
                             <label className="text-xs uppercase tracking-wider text-muted-foreground">Password</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="mt-1 w-full h-11 px-3 rounded-md border border-input bg-card focus:outline-none focus:ring-2 focus:ring-ring"
-                                placeholder="••••••••"
-                                required
-                            />
+                            <div className="relative mt-1">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full h-11 px-3 pr-10 rounded-md border border-input bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-11 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-90 disabled:opacity-70"
+                            className="w-full h-11 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-90 disabled:opacity-70 transition-all"
                         >
                             {loading ? "Logging in..." : "Login"}
                         </button>
@@ -156,10 +173,11 @@ function LoginPage() {
 
                     <div className="text-xs text-muted-foreground text-center">
                         New customer?{" "}
-                        <Link to="/register" className="text-foreground font-medium underline">
+                        <Link to="/register" className="text-foreground font-medium underline hover:text-primary transition-colors">
                             Create an account
                         </Link>
                     </div>
+
                 </div>
             </div>
         </div>
