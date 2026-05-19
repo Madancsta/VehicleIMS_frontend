@@ -10,7 +10,10 @@ const navItems = [
   { label: "Purchase History", path: "/customer/history", icon: History },
 ];
 
-const API_BASE_URL = "https://localhost:7280/api";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api").replace(
+  /\/$/,
+  "",
+);
 
 export default function CustomerLayout({ children }) {
   const [path, setPath] = useState(window.location.pathname);
@@ -32,7 +35,12 @@ export default function CustomerLayout({ children }) {
       });
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data.notifications || []);
+        const notificationRows = data.notifications || [];
+        setNotifications(notificationRows);
+        setSummary((current) => ({
+          ...current,
+          totalUnread: countUnread(notificationRows),
+        }));
       }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
@@ -93,7 +101,7 @@ export default function CustomerLayout({ children }) {
     setMobileNavOpen(false);
   };
 
-  const totalUnread = summary.totalUnread || 0;
+  const totalUnread = notifications.length ? countUnread(notifications) : summary.totalUnread || 0;
 
   const getNotificationIcon = (type) => {
     if (type === "Booking") return <Calendar className="h-4 w-4" />;
@@ -108,6 +116,64 @@ export default function CustomerLayout({ children }) {
 
   const handleShowLess = () => {
     setDisplayCount(5);
+  };
+
+  const refreshNotifications = async () => {
+    await Promise.all([fetchNotifications(), fetchSummary()]);
+  };
+
+  const markNotificationAsRead = async (notification) => {
+    if (!token || !notification?.id || notification.isRead) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/customer/notifications/${notification.id}/read`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setNotifications((current) =>
+          current.map((item) =>
+            item.id === notification.id && item.type === notification.type
+              ? { ...item, isRead: true }
+              : item,
+          ),
+        );
+        setSummary((current) => ({
+          ...current,
+          totalUnread: Math.max((current.totalUnread || 0) - 1, 0),
+        }));
+        await refreshNotifications();
+      } else {
+        console.error("Failed to mark notification as read:", await response.text());
+      }
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    if (!token || notifications.length === 0) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/customer/notifications/read-all`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
+        setSummary((current) => ({
+          ...current,
+          totalUnread: 0,
+        }));
+        await refreshNotifications();
+      } else {
+        console.error("Failed to mark all notifications as read:", await response.text());
+      }
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
   };
 
   const displayedNotifications = notifications.slice(0, displayCount);
@@ -212,6 +278,8 @@ export default function CustomerLayout({ children }) {
               currentCount={displayCount}
               totalCount={notifications.length}
               getNotificationIcon={getNotificationIcon}
+              onMarkAsRead={markNotificationAsRead}
+              onMarkAllAsRead={markAllNotificationsAsRead}
             />
           )}
 
@@ -247,6 +315,10 @@ export default function CustomerLayout({ children }) {
   );
 }
 
+function countUnread(notifications) {
+  return notifications.filter((notification) => !notification.isRead).length;
+}
+
 function NotifDropdown({ 
   onClose, 
   notifications, 
@@ -256,7 +328,9 @@ function NotifDropdown({
   onShowLess,
   currentCount,
   totalCount,
-  getNotificationIcon
+  getNotificationIcon,
+  onMarkAsRead,
+  onMarkAllAsRead
 }) {
   const formatTime = (dateString) => {
     if (!dateString) return "";
@@ -296,15 +370,25 @@ function NotifDropdown({
             <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
           ) : (
             <>
-              {notifications.map((n, i) => (
-                <div key={i} className="border-b border-border p-3 last:border-0 hover:bg-surface transition-colors">
+              {notifications.map((n) => (
+                <button
+                  key={`${n.type}-${n.id}`}
+                  type="button"
+                  onClick={() => onMarkAsRead?.(n)}
+                  className={`w-full border-b border-border p-3 text-left last:border-0 hover:bg-surface transition-colors ${
+                    n.isRead ? "opacity-70" : "bg-surface/40"
+                  }`}
+                >
                   <div className="flex items-start gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface shrink-0">
                       {getNotificationIcon(n.type)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-medium truncate">{n.title}</div>
+                        <div className="flex min-w-0 items-center gap-2">
+                          {!n.isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-destructive" />}
+                          <div className="text-sm font-medium truncate">{n.title}</div>
+                        </div>
                         <div className="text-xs text-muted-foreground whitespace-nowrap">
                           {formatTime(n.createdAt)}
                         </div>
@@ -321,7 +405,7 @@ function NotifDropdown({
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
               
               {hasMore ? (
@@ -348,7 +432,11 @@ function NotifDropdown({
         </div>
         
         <div className="p-2 border-t border-border">
-          <button className="w-full text-center text-xs text-muted-foreground py-1 hover:text-foreground transition-colors">
+          <button
+            type="button"
+            onClick={onMarkAllAsRead}
+            className="w-full text-center text-xs text-muted-foreground py-1 hover:text-foreground transition-colors"
+          >
             Mark all as read
           </button>
         </div>
