@@ -4,7 +4,7 @@ const API_BASE_URL = "http://localhost:5229/api";
 
 export const searchCustomers = async (query) => {
   const response = await axios.get(
-    `${API_BASE_URL}/Customer/search`,
+    `${API_BASE_URL}/customers/search`,
     {
       params: { query },
     }
@@ -15,7 +15,7 @@ export const searchCustomers = async (query) => {
 
 export const getCustomerById = async (id) => {
   const response = await axios.get(
-    `${API_BASE_URL}/Customer/${id}`
+    `${API_BASE_URL}/customers/${id}`
   );
 
   return response.data;
@@ -23,7 +23,7 @@ export const getCustomerById = async (id) => {
 
 export const getHighSpenders = async () => {
   const response = await axios.get(
-    `${API_BASE_URL}/Customer/reports/high-spenders`
+    `${API_BASE_URL}/customers/reports/high-spenders`
   );
 
   return response.data;
@@ -31,7 +31,7 @@ export const getHighSpenders = async () => {
 
 export const getPendingCredits = async () => {
   const response = await axios.get(
-    `${API_BASE_URL}/Customer/reports/pending-credits`
+    `${API_BASE_URL}/customers/reports/pending-credits`
   );
 
   return response.data;
@@ -39,7 +39,7 @@ export const getPendingCredits = async () => {
 
 export const getRegularCustomers = async () => {
   const response = await axios.get(
-    `${API_BASE_URL}/Customer/reports/regulars`
+    `${API_BASE_URL}/customers/reports/regulars`
   );
 
   return response.data;

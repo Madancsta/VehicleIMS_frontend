@@ -1,8 +1,60 @@
 import { PageHeader } from "../components/PageHeader";
 import { useEffect, useState } from "react";
 import { ChevronRight, Phone, Mail, MapPin, Car } from "lucide-react";
-import axios from "axios";
 import { getCustomerById } from "../api/customerApi";
+
+// Copy the same API helper functions from SalesPage
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api").replace(/\/$/, "");
+
+// Reuse the same authentication pattern
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: getAuthHeaders(options.headers),
+  });
+  return readApiResponse(res);
+}
+
+function getAuthHeaders(headers = {}) {
+  const accessToken = localStorage.getItem("accessToken");
+  return {
+    "Content-Type": "application/json",
+    ...headers,
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+}
+
+async function readApiResponse(res) {
+  const text = await res.text();
+
+  if (!res.ok) {
+    let errorMessage = text || "Request failed.";
+    try {
+      const parsed = JSON.parse(text);
+      errorMessage = parsed.message || parsed.Message || parsed.title || errorMessage;
+    } catch {
+      // Plain-text error
+    }
+    throw new Error(errorMessage);
+  }
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+// API functions
+function getAllCustomers() {
+  return apiFetch("/customers");
+}
+
+function getCustomerDetails(id) {
+  return apiFetch(`/customers/${id}`);
+}
 
 function CustomerHistory() {
   const [customers, setCustomers] = useState([]);
@@ -11,8 +63,6 @@ function CustomerHistory() {
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const API_BASE_URL = "http://localhost:5229/api";
 
   useEffect(() => {
     fetchCustomers();
@@ -29,17 +79,22 @@ function CustomerHistory() {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(`${API_BASE_URL}/Customer`);
-      const data = response.data || [];
+      // Use the authenticated API function instead of direct axios
+      const data = await getAllCustomers();
+      const customersList = Array.isArray(data) ? data : data?.items || data?.$values || [];
+      
+      setCustomers(customersList);
 
-      setCustomers(data);
-
-      if (data.length > 0) {
-        setSelectedId(data[0].customerId);
+      if (customersList.length > 0) {
+        setSelectedId(customersList[0].customerId);
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to load customers. Make sure backend is running.");
+      if (err.message.includes("401") || err.message.includes("Unauthorized")) {
+        setError("Unauthorized access. Please login with Admin or Staff credentials.");
+      } else {
+        setError("Failed to load customers. Make sure backend is running.");
+      }
     } finally {
       setLoading(false);
     }
@@ -48,11 +103,16 @@ function CustomerHistory() {
   const fetchCustomerDetails = async (id) => {
     try {
       setDetailsLoading(true);
-      const data = await getCustomerById(id);
+      // Use the authenticated API function
+      const data = await getCustomerDetails(id);
       setSelectedCustomer(data);
     } catch (err) {
       console.error(err);
-      setError("Failed to load customer details.");
+      if (err.message.includes("401") || err.message.includes("Unauthorized")) {
+        setError("Unauthorized access. Please login with appropriate credentials.");
+      } else {
+        setError("Failed to load customer details.");
+      }
     } finally {
       setDetailsLoading(false);
     }
@@ -79,6 +139,16 @@ function CustomerHistory() {
         />
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-600">
           {error}
+          {error.includes("Unauthorized") && (
+            <div className="mt-4">
+              <button 
+                onClick={() => window.location.href = '/login'}
+                className="px-4 py-2 bg-primary text-white rounded-md"
+              >
+                Go to Login
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
