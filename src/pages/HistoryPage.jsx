@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { Download, Eye, Printer } from "lucide-react";
 import CustomerLayout from "../components/CustomerLayout";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://localhost:7280/api").replace(/\/$/, "");
+import { apiFetch } from '../api/clientApi';
 
 function HistoryPage() {
     const [sales, setSales] = useState([]);
@@ -24,29 +23,7 @@ function HistoryPage() {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/customer/purchase-history`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-
-            if (response.status === 401) {
-                setError("Session expired. Please login again.");
-                setLoading(false);
-                return;
-            }
-
-            if (response.status === 404) {
-                setSales([]);
-                setSummary({ totalInvoices: 0, totalSpent: 0, thisMonth: 0 });
-                setError("");
-                setLoading(false);
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-
-            const data = await response.json();
+            const data = await apiFetch("/customer/purchase-history");
             
             const orders = data.orders || (Array.isArray(data) ? data : []);
             const totalSpent = data.totalSpent || orders.reduce((sum, sale) => sum + (Number(sale.salesAmount) || 0), 0);
@@ -83,16 +60,8 @@ function HistoryPage() {
 
     const fetchOrderDetails = async (salesId) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/customer/purchase-history/orders/${salesId}`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                setViewingOrder(data);
-            } else {
-                alert("Failed to load order details");
-            }
+            const data = await apiFetch(`/customer/purchase-history/orders/${salesId}`);
+            setViewingOrder(data);
         } catch (err) {
             alert("Error loading order details");
         }

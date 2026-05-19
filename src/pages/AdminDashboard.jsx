@@ -1,8 +1,7 @@
 import { PageHeader } from "../components/PageHeader";
 import { TrendingUp, Users, Package, AlertTriangle, DollarSign, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://localhost:7280/api").replace(/\/$/, "");
+import { apiFetch } from '../api/clientApi';
 
 function AdminDashboard() {
     const [loading, setLoading] = useState(true);
@@ -23,34 +22,13 @@ function AdminDashboard() {
         topCustomers: []
     });
 
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("accessToken");
-        return {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-        };
-    };
-
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
             setError("");
-            
-            const response = await fetch(`${API_BASE_URL}/adminDashboard/data`, {
-                headers: getAuthHeaders()
-            });
 
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error("Authentication required. Please login again.");
-                }
-                if (response.status === 403) {
-                    throw new Error("Admin access required.");
-                }
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            const data = await apiFetch("/adminDashboard/data");
 
-            const data = await response.json();
             setDashboardData(data);
         } catch (err) {
             console.error("Dashboard error:", err);

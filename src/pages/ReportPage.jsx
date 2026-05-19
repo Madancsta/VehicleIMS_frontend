@@ -1,10 +1,7 @@
 import { PageHeader } from "../components/PageHeader";
 import { Download, TrendingUp, TrendingDown } from "lucide-react";
 import { useEffect, useState } from "react";
-
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api"
-).replace(/\/$/, "");
+import { apiFetch } from "../api/clientApi";
 
 function ReportsPage() {
   const [reportData, setReportData] = useState(null);
@@ -107,8 +104,8 @@ function ReportsPage() {
           </div>
         </div>
 
-        <div className="stat-card bg-primary text-primary-foreground border-primary">
-          <div className="text-xs uppercase tracking-wider opacity-60">
+        <div className="stat-card">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
             Net Profit
           </div>
           <div className="font-display text-3xl font-bold mt-2">
@@ -208,52 +205,6 @@ function ReportsPage() {
       </div>
     </div>
   );
-}
-
-async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: getAuthHeaders(options.headers),
-  });
-
-  return readApiResponse(res);
-}
-
-function getAuthHeaders(headers = {}) {
-  const token =
-    localStorage.getItem("token") || localStorage.getItem("accessToken");
-
-  return {
-    "Content-Type": "application/json",
-    ...headers,
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
-async function readApiResponse(res) {
-  const text = await res.text();
-
-  if (!res.ok) {
-    let errorMessage = text || "Request failed.";
-
-    try {
-      const parsed = JSON.parse(text);
-      errorMessage =
-        parsed.message || parsed.Message || parsed.title || errorMessage;
-    } catch {
-      // plain text error
-    }
-
-    throw new Error(errorMessage);
-  }
-
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
 }
 
 function getFinancialReport() {

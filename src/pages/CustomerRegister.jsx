@@ -3,7 +3,7 @@ import { Eye, EyeOff } from "lucide-react";
 import registerImage from "../assets/register_image.jpeg";
 import { Link } from "../components/Link";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api").replace(
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL).replace(
   /\/$/,
   "",
 );

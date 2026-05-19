@@ -2,8 +2,7 @@ import { Link } from "../components/Link";
 import { PageHeader } from "../components/PageHeader";
 import { ShoppingCart, UserPlus, Search, Calendar, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://localhost:7280/api").replace(/\/$/, "");
+import { apiFetch } from '../api/clientApi';
 
 function StaffDashboardPage() {
     const [loading, setLoading] = useState(true);
@@ -20,34 +19,12 @@ function StaffDashboardPage() {
         quickActions: []
     });
 
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("accessToken");
-        return {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-        };
-    };
-
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
             setError("");
             
-            const response = await fetch(`${API_BASE_URL}/staffDashboard/data`, {
-                headers: getAuthHeaders()
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error("Authentication required. Please login again.");
-                }
-                if (response.status === 403) {
-                    throw new Error("Staff access required.");
-                }
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data = await response.json();
+            const data = await apiFetch("/staffDashboard/data");
             setDashboardData(data);
         } catch (err) {
             console.error("Dashboard error:", err);

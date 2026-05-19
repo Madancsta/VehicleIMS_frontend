@@ -1,11 +1,7 @@
 import { PageHeader } from "../components/PageHeader";
 import { Plus, Trash2, Mail, Printer, RefreshCw } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api").replace(
-  /\/$/,
-  "",
-);
+import { apiFetch } from '../api/clientApi';
 
 function SalesPage() {
     const [items, setItems] = useState([]);
@@ -23,6 +19,7 @@ function SalesPage() {
     const [message, setMessage] = useState("");
     const [lastSale, setLastSale] = useState(null);
     const [pageLoading, setPageLoading] = useState(true);
+    const [selectedBookingDetails, setSelectedBookingDetails] = useState(null);
     
     // Fetch data on mount
     useEffect(() => {
@@ -49,6 +46,15 @@ function SalesPage() {
             setVehicles([]);
         }
     }, [selectedCustomerId]);
+    
+    // Load booking details when a booking is selected
+    useEffect(() => {
+        if (selectedBookingId) {
+            loadBookingDetails(selectedBookingId);
+        } else {
+            setSelectedBookingDetails(null);
+        }
+    }, [selectedBookingId]);
     
     const loadCustomers = useCallback(async () => {
         try {
@@ -120,6 +126,65 @@ function SalesPage() {
         }
     }, []);
     
+    // NEW: Load booking details including parts and service
+    const loadBookingDetails = useCallback(async (bookingId) => {
+        try {
+            const bookingDetails = await getBookingDetails(bookingId);
+            setSelectedBookingDetails(bookingDetails);
+            
+            // Auto-set service type from booking
+            if (bookingDetails.serviceType) {
+                // Find matching service ID based on service type
+                const matchingService = services.find(s => 
+                    s.serviceType?.toLowerCase() === bookingDetails.serviceType?.toLowerCase()
+                );
+                if (matchingService) {
+                    setSelectedServiceId(matchingService.serviceId.toString());
+                }
+            }
+            
+            // Auto-set vehicle from booking
+            if (bookingDetails.vehicleId) {
+                setSelectedVehicleId(bookingDetails.vehicleId.toString());
+            }
+            
+            // Auto-add parts from booking's request parts
+            if (bookingDetails.parts && bookingDetails.parts.length > 0) {
+                const bookingParts = [];
+                for (const requestPart of bookingDetails.parts) {
+                    // Find the part in the parts list
+                    const part = parts.find(p => p.partId === requestPart.partId);
+                    if (part) {
+                        bookingParts.push({
+                            partId: part.partId,
+                            name: part.partName,
+                            quantity: requestPart.quantity || 1,
+                            unitPrice: part.unitPrice || part.partPrice
+                        });
+                    }
+                }
+                
+                // Merge with existing items (avoid duplicates)
+                const updatedItems = [...items];
+                for (const bookingPart of bookingParts) {
+                    const existingIndex = updatedItems.findIndex(item => item.partId === bookingPart.partId);
+                    if (existingIndex >= 0) {
+                        updatedItems[existingIndex].quantity += bookingPart.quantity;
+                    } else {
+                        updatedItems.push(bookingPart);
+                    }
+                }
+                setItems(updatedItems);
+                
+                setMessage(`Loaded parts from booking #${bookingId}`);
+                setTimeout(() => setMessage(""), 3000);
+            }
+        } catch (error) {
+            console.error("Failed to load booking details:", error);
+            setMessage("Could not load booking details.");
+        }
+    }, [services, parts, items]);
+    
     const partsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     
     // Get selected service details
@@ -127,7 +192,7 @@ function SalesPage() {
     const serviceCharge = selectedService?.serviceCharge || 0;
     
     const subtotal = partsTotal + serviceCharge;
-    const discount = Math.round(subtotal * 0.1);
+    const discount = subtotal > 5000 ? Math.round(subtotal * 0.1) : 0;
     const total = subtotal - discount;
     
     const handleCompleteSale = async () => {
@@ -168,6 +233,7 @@ function SalesPage() {
             setSelectedServiceId("");
             setSelectedVehicleId("");
             setSelectedBookingId("");
+            setSelectedBookingDetails(null);
             setSelectedCustomerId("");
             
         } catch (err) {
@@ -237,6 +303,7 @@ function SalesPage() {
                             </thead>
                             <tbody>
                                 ${invoice.items.map(item => `
+                                ${invoice.items.map(item => `
                                     <tr>
                                         <td>${item.partName}</td>
                                         <td>${item.quantity}</td>
@@ -244,10 +311,12 @@ function SalesPage() {
                                         <td>Rs. ${item.lineTotal.toLocaleString()}</td>
                                     </tr>
                                 `).join('')}
+                                `).join('')}
                             </tbody>
                         </table>
                         <div class="total">
                             <p>Subtotal: Rs. ${invoice.subtotal?.toLocaleString() || (invoice.partsTotal + invoice.serviceCharge).toLocaleString()}</p>
+                            <p>Discount (10%): Rs. ${invoice.discount?.toLocaleString() || 0}</p>
                             <p>Discount (10%): Rs. ${invoice.discount?.toLocaleString() || 0}</p>
                             <p>Total: Rs. ${invoice.total?.toLocaleString() || invoice.salesAmount?.toLocaleString()}</p>
                         </div>
@@ -314,7 +383,7 @@ function SalesPage() {
             
             {message && (
                 <div className={`mb-6 rounded-lg border p-4 text-sm shadow-sm ${
-                    message.includes("success") || message.includes("Successfully")
+                    message.includes("success") || message.includes("Successfully") || message.includes("Loaded")
                         ? "border-green-500 bg-green-50 text-green-700" 
                         : "border-red-500 bg-red-50 text-red-700"
                 }`}>
@@ -385,19 +454,37 @@ function SalesPage() {
                     {/* Booking Selection (if applicable) */}
                     {bookings.length > 0 && (
                         <div className="bg-card border border-border rounded-lg p-6">
-                            <div className="font-display font-semibold mb-4">Booking Reference (Optional)</div>
+                            <div className="font-display font-semibold mb-4">Booking Reference</div>
                             <select 
                                 value={selectedBookingId}
                                 onChange={(e) => setSelectedBookingId(e.target.value)}
                                 className="w-full h-10 px-3 rounded-md border border-input bg-background"
                             >
                                 <option value="">Select Existing Booking</option>
-                                {bookings.map(b => (
-                                    <option key={b.bookingId} value={b.bookingId}>
-                                        Booking #{b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
-                                    </option>
-                                ))}
+                                {bookings
+                                    .filter(b => {
+                                        const status = b.bookingStatus || b.status;
+                                        return status === "Pending" || status === "Confirmed" || status === "0" || status === "1";
+                                    })
+                                    .map(b => (
+                                        <option key={b.bookingId} value={b.bookingId}>
+                                            Booking #{b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
+                                        </option>
+                                    ))}
                             </select>
+                            {selectedBookingDetails && (
+                                <div className="mt-3 p-3 bg-surface rounded-md text-sm">
+                                    <div className="font-medium mb-1">Booking Details:</div>
+                                    <div className="text-muted-foreground">
+                                        {selectedBookingDetails.serviceType && (
+                                            <div>Service: {selectedBookingDetails.serviceType}</div>
+                                        )}
+                                        {selectedBookingDetails.parts && selectedBookingDetails.parts.length > 0 && (
+                                            <div>Parts: {selectedBookingDetails.parts.length} item(s) loaded</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     
@@ -424,7 +511,7 @@ function SalesPage() {
                                     {items.length === 0 ? (
                                         <tr className="border-t border-border">
                                             <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                                                No items added. Click on parts below to add them.
+                                                No items added. Click on parts below to add them or select a booking.
                                             </td>
                                         </tr>
                                     ) : (
@@ -498,7 +585,9 @@ function SalesPage() {
                                  value={`Rs. ${serviceCharge.toLocaleString()}`}/>
                         )}
                         <Row label="Subtotal" value={`Rs. ${subtotal.toLocaleString()}`}/>
-                        <Row label="Loyalty Discount (10%)" value={`- Rs. ${discount.toLocaleString()}`} muted/>
+                        {subtotal > 5000 && (
+                            <Row label="Loyalty Discount (10%)" value={`- Rs. ${discount.toLocaleString()}`} muted/>
+                        )}
                         <div className="border-t border-border pt-3 mt-3">
                             <Row label="Total Amount" value={`Rs. ${total.toLocaleString()}`} bold/>
                         </div>
@@ -562,71 +651,50 @@ function Row({ label, value, muted, bold }) {
             <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
         </div>
     );
-}
-
-// API Functions
-async function apiFetch(path, options = {}) {
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-        ...options,
-        headers: getAuthHeaders(options.headers),
-    });
-    return readApiResponse(res);
-}
-
-function getAuthHeaders(headers = {}) {
-    const accessToken = localStorage.getItem("accessToken");
-    return {
-        "Content-Type": "application/json",
-        ...headers,
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    };
-}
-
-async function readApiResponse(res) {
-    const text = await res.text();
-    
-    if (!res.ok) {
-        let errorMessage = text || "Request failed.";
-        try {
-            const parsed = JSON.parse(text);
-            errorMessage = parsed.message || parsed.Message || parsed.title || errorMessage;
-        } catch {
-            // Plain-text error
-        }
-        throw new Error(errorMessage);
-    }
-    
-    if (!text) return null;
-    
-    try {
-        return JSON.parse(text);
-    } catch {
-        return text;
-    }
+    return (
+        <div className="flex justify-between">
+            <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
+            <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
+        </div>
+    );
 }
 
 // API endpoint functions
 function getCustomers() {
     return apiFetch("/customers");
+    return apiFetch("/customers");
 }
 
 function getParts() {
+    return apiFetch("/parts");
     return apiFetch("/parts");
 }
 
 function getServices() {
     return apiFetch("/services");
+    return apiFetch("/services");
 }
 
 function getVehicles(customerId) {
+    return apiFetch(`/vehicle/customer/${customerId}`);
     return apiFetch(`/vehicle/customer/${customerId}`);
 }
 
 function getBookingsByCustomer(customerId) {
     return apiFetch(`/bookings/customer/${customerId}`);
+    return apiFetch(`/bookings/customer/${customerId}`);
+}
+
+// NEW: Get booking details including parts
+function getBookingDetails(bookingId) {
+    return apiFetch(`/bookings/${bookingId}/details`);
 }
 
 function createSale(data) {
+    return apiFetch("/sales", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
     return apiFetch("/sales", {
         method: "POST",
         body: JSON.stringify(data),
@@ -638,9 +706,14 @@ function sendInvoiceEmail(salesId, recipientEmail) {
         method: "POST",
         body: JSON.stringify({ salesId, recipientEmail }),
     });
+    return apiFetch(`/sales/${salesId}/send-invoice`, {
+        method: "POST",
+        body: JSON.stringify({ salesId, recipientEmail }),
+    });
 }
 
 function getInvoice(salesId) {
+    return apiFetch(`/sales/${salesId}/invoice`);
     return apiFetch(`/sales/${salesId}/invoice`);
 }
 
