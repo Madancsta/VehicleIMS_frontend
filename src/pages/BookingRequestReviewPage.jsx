@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { Calendar, MessageSquare, PackageSearch, RefreshCw, Star } from "lucide-react";
+import {
+  Calendar,
+  MessageSquare,
+  PackageSearch,
+  RefreshCw,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import CustomerLayout from "../components/CustomerLayout";
 import { PageHeader } from "../components/PageHeader";
 import { apiFetch } from "../api/clientApi";
@@ -8,6 +16,12 @@ const inputClassName =
   "h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted-foreground";
 const textareaClassName =
   "min-h-36 w-full resize-y rounded-md border border-input bg-background px-3 py-3 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-ring";
+
+const ITEMS_PER_PAGE = {
+  bookings: 3,
+  requests: 3,
+  reviews: 3,
+};
 
 function BookingRequestReviewPage() {
   const customerId = localStorage.getItem("customerId");
@@ -19,7 +33,6 @@ function BookingRequestReviewPage() {
   const [parts, setParts] = useState([]);
   const [partsNotice, setPartsNotice] = useState("");
 
-  // Services state - loaded from backend
   const [services, setServices] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [serviceTypesLoading, setServiceTypesLoading] = useState(false);
@@ -53,22 +66,22 @@ function BookingRequestReviewPage() {
   const [reviewableSales, setReviewableSales] = useState([]);
   const [reviewableSalesMessage, setReviewableSalesMessage] = useState("");
 
-  // Load services from backend
+  const [bookingsPage, setBookingsPage] = useState(1);
+  const [requestsPage, setRequestsPage] = useState(1);
+  const [reviewsPage, setReviewsPage] = useState(1);
+
   const loadServices = useCallback(async () => {
     try {
       setServiceTypesLoading(true);
       const data = await getServices();
 
-      // Normalize services data
       let servicesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
 
-      // Extract unique service types from the services
       const uniqueServiceTypes = [...new Set(servicesList.map((service) => service.serviceType))];
 
       setServices(servicesList);
       setServiceTypes(uniqueServiceTypes);
 
-      // Set default service type if available
       if (uniqueServiceTypes.length > 0 && !bookingForm.serviceType) {
         setBookingForm((prev) => ({
           ...prev,
@@ -77,7 +90,6 @@ function BookingRequestReviewPage() {
       }
     } catch (error) {
       console.error("Failed to load services:", error);
-      // Fallback to default service types if backend fails
       const fallbackTypes = [
         "Full Service",
         "Oil Change",
@@ -119,6 +131,7 @@ function BookingRequestReviewPage() {
 
       const bookingRows = await fetchBookingsForVehicles(profileVehicles);
       setBookings(bookingRows);
+      setBookingsPage(1);
     } catch (err) {
       setMessage(err.message || "Unable to load customer bookings.");
       setBookings([]);
@@ -152,6 +165,7 @@ function BookingRequestReviewPage() {
       setRequestHistoryMessage("");
       const data = await getCustomerRequests(customerId);
       setRequestHistory(normalizePartRequests(data));
+      setRequestsPage(1);
     } catch {
       setRequestHistory([]);
       setRequestHistoryMessage(
@@ -174,6 +188,7 @@ function BookingRequestReviewPage() {
       const data = await getReviewableSales();
       const salesRows = normalizeReviewableSales(data);
       setReviewableSales(salesRows);
+      setReviewsPage(1);
 
       setReviewForm((current) => ({
         ...current,
@@ -208,6 +223,24 @@ function BookingRequestReviewPage() {
 
     return () => window.clearTimeout(timer);
   }, [message]);
+
+  const totalBookingsPages = Math.ceil(bookings.length / ITEMS_PER_PAGE.bookings);
+  const paginatedBookings = bookings.slice(
+    (bookingsPage - 1) * ITEMS_PER_PAGE.bookings,
+    bookingsPage * ITEMS_PER_PAGE.bookings,
+  );
+
+  const totalRequestsPages = Math.ceil(requestHistory.length / ITEMS_PER_PAGE.requests);
+  const paginatedRequests = requestHistory.slice(
+    (requestsPage - 1) * ITEMS_PER_PAGE.requests,
+    requestsPage * ITEMS_PER_PAGE.requests,
+  );
+
+  const totalReviewsPages = Math.ceil(reviewableSales.length / ITEMS_PER_PAGE.reviews);
+  const paginatedReviews = reviewableSales.slice(
+    (reviewsPage - 1) * ITEMS_PER_PAGE.reviews,
+    reviewsPage * ITEMS_PER_PAGE.reviews,
+  );
 
   function handleBookingChange(e) {
     setBookingForm({
@@ -536,46 +569,58 @@ function BookingRequestReviewPage() {
             <div className="mt-5 space-y-3">
               {pageLoading ? (
                 <p className="text-sm text-muted-foreground">Loading bookings...</p>
-              ) : bookings.length > 0 ? (
-                bookings.map((booking) => {
-                  const bookingId = getBookingId(booking);
-                  const status = formatStatus(
-                    getValue(booking, "bookingStatus", "BookingStatus", "status"),
-                  );
+              ) : paginatedBookings.length > 0 ? (
+                <>
+                  {paginatedBookings.map((booking) => {
+                    const bookingId = getBookingId(booking);
+                    const status = formatStatus(
+                      getValue(booking, "bookingStatus", "BookingStatus", "status"),
+                    );
 
-                  return (
-                    <div
-                      key={bookingId}
-                      className="rounded-lg border border-border bg-background p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground">Booking #{bookingId}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {booking.vehicleName || `Vehicle #${getBookingVehicleId(booking)}`}
-                          </p>
+                    return (
+                      <div
+                        key={bookingId}
+                        className="rounded-lg border border-border bg-background p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground">Booking #{bookingId}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {booking.vehicleName || `Vehicle #${getBookingVehicleId(booking)}`}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${statusBadgeClass(
+                              status,
+                            )}`}
+                          >
+                            {status}
+                          </span>
                         </div>
 
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${statusBadgeClass(
-                            status,
-                          )}`}
-                        >
-                          {status}
-                        </span>
+                        <p className="mt-3 text-sm text-foreground">
+                          {getBookingServiceLabel(booking)}
+                        </p>
+
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          {formatDate(getValue(booking, "bookingDate", "BookingDate"))} at{" "}
+                          {formatTime(getValue(booking, "bookingTime", "BookingTime"))}
+                        </p>
                       </div>
+                    );
+                  })}
 
-                      <p className="mt-3 text-sm text-foreground">
-                        {getBookingServiceLabel(booking)}
-                      </p>
-
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        {formatDate(getValue(booking, "bookingDate", "BookingDate"))} at{" "}
-                        {formatTime(getValue(booking, "bookingTime", "BookingTime"))}
-                      </p>
-                    </div>
-                  );
-                })
+                  {/* Bookings Pagination */}
+                  {totalBookingsPages > 1 && (
+                    <PaginationControls
+                      currentPage={bookingsPage}
+                      totalPages={totalBookingsPages}
+                      onPrevPage={() => setBookingsPage((p) => Math.max(1, p - 1))}
+                      onNextPage={() => setBookingsPage((p) => Math.min(totalBookingsPages, p + 1))}
+                    />
+                  )}
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground">No bookings found yet.</p>
               )}
@@ -584,10 +629,9 @@ function BookingRequestReviewPage() {
         </div>
       )}
 
-      {/* Part Request Tab - Keep as is */}
+      {/* Part Request Tab */}
       {activeTab === "request" && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.95fr]">
-          {/* Request form content - same as before */}
           <form
             onSubmit={handleRequestSubmit}
             className="rounded-lg border border-border bg-card p-6 shadow-elegant"
@@ -714,47 +758,59 @@ function BookingRequestReviewPage() {
             <div className="mt-5 space-y-3">
               {requestHistoryLoading ? (
                 <p className="text-sm text-muted-foreground">Loading part requests...</p>
-              ) : requestHistory.length > 0 ? (
-                requestHistory.map((request) => (
-                  <div
-                    key={`${request.requestId}-${request.partId}`}
-                    className="rounded-lg border border-border bg-background p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-medium text-foreground">{request.partName}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Request #{request.requestId} - Booking #{request.bookingId}
-                        </p>
+              ) : paginatedRequests.length > 0 ? (
+                <>
+                  {paginatedRequests.map((request) => (
+                    <div
+                      key={`${request.requestId}-${request.partId}`}
+                      className="rounded-lg border border-border bg-background p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground">{request.partName}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Request #{request.requestId} - Booking #{request.bookingId}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${
+                            Number(request.status) === 2
+                              ? "bg-success/15 text-success"
+                              : Number(request.status) === 3
+                                ? "bg-destructive/15 text-destructive"
+                                : "bg-warning/20 text-warning-foreground"
+                          }`}
+                        >
+                          {formatRequestStatus(request.status)}
+                        </span>
                       </div>
 
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          Number(request.status) === 2
-                            ? "bg-success/15 text-success"
-                            : Number(request.status) === 3
-                              ? "bg-destructive/15 text-destructive"
-                              : "bg-warning/20 text-warning-foreground"
-                        }`}
-                      >
-                        {formatRequestStatus(request.status)}
-                      </span>
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        Qty {request.quantity}
+                        {request.vehicleName ? ` - ${request.vehicleName}` : ""}
+                      </p>
+
+                      {request.description && (
+                        <p className="mt-2 text-sm text-foreground">{request.description}</p>
+                      )}
+
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        {formatDate(request.requestedDate)}
+                      </p>
                     </div>
+                  ))}
 
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      Qty {request.quantity}
-                      {request.vehicleName ? ` - ${request.vehicleName}` : ""}
-                    </p>
-
-                    {request.description && (
-                      <p className="mt-2 text-sm text-foreground">{request.description}</p>
-                    )}
-
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      {formatDate(request.requestedDate)}
-                    </p>
-                  </div>
-                ))
+                  {/* Requests Pagination */}
+                  {totalRequestsPages > 1 && (
+                    <PaginationControls
+                      currentPage={requestsPage}
+                      totalPages={totalRequestsPages}
+                      onPrevPage={() => setRequestsPage((p) => Math.max(1, p - 1))}
+                      onNextPage={() => setRequestsPage((p) => Math.min(totalRequestsPages, p + 1))}
+                    />
+                  )}
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {requestHistoryMessage || "No part requests found yet."}
@@ -765,7 +821,7 @@ function BookingRequestReviewPage() {
         </div>
       )}
 
-      {/* Review Tab - Keep as is */}
+      {/* Review Tab */}
       {activeTab === "review" && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.95fr]">
           <form
@@ -849,28 +905,40 @@ function BookingRequestReviewPage() {
             />
 
             <div className="mt-5 space-y-3">
-              {reviewableSales.length > 0 ? (
-                reviewableSales.map((sale) => (
-                  <div
-                    key={getReviewableSaleId(sale)}
-                    className="rounded-lg border border-border bg-background p-4"
-                  >
-                    <p className="font-medium">
-                      {getValue(sale, "serviceType", "ServiceType") || "Completed service"}
-                    </p>
+              {paginatedReviews.length > 0 ? (
+                <>
+                  {paginatedReviews.map((sale) => (
+                    <div
+                      key={getReviewableSaleId(sale)}
+                      className="rounded-lg border border-border bg-background p-4"
+                    >
+                      <p className="font-medium">
+                        {getValue(sale, "serviceType", "ServiceType") || "Completed service"}
+                      </p>
 
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {getValue(sale, "vehicleNumber", "VehicleNumber") ||
-                        "Vehicle details pending"}
-                    </p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {getValue(sale, "vehicleNumber", "VehicleNumber") ||
+                          "Vehicle details pending"}
+                      </p>
 
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Sale #{getReviewableSaleId(sale)} -{" "}
-                      {formatDate(getValue(sale, "salesDate", "SalesDate"))} -{" "}
-                      {formatCurrency(getValue(sale, "salesAmount", "SalesAmount"))}
-                    </p>
-                  </div>
-                ))
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Sale #{getReviewableSaleId(sale)} -{" "}
+                        {formatDate(getValue(sale, "salesDate", "SalesDate"))} -{" "}
+                        {formatCurrency(getValue(sale, "salesAmount", "SalesAmount"))}
+                      </p>
+                    </div>
+                  ))}
+
+                  {/* Reviews Pagination */}
+                  {totalReviewsPages > 1 && (
+                    <PaginationControls
+                      currentPage={reviewsPage}
+                      totalPages={totalReviewsPages}
+                      onPrevPage={() => setReviewsPage((p) => Math.max(1, p - 1))}
+                      onNextPage={() => setReviewsPage((p) => Math.min(totalReviewsPages, p + 1))}
+                    />
+                  )}
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {reviewableSalesMessage || "No completed services are ready for review yet."}
@@ -884,7 +952,38 @@ function BookingRequestReviewPage() {
   );
 }
 
-// Helper components (TabButton, SectionTitle, Field remain the same)
+function PaginationControls({ currentPage, totalPages, onPrevPage, onNextPage }) {
+  return (
+    <div className="flex items-center justify-center gap-4 pt-4 mt-2 border-t border-border">
+      <button
+        onClick={onPrevPage}
+        disabled={currentPage === 1}
+        className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${
+          currentPage === 1
+            ? "text-muted-foreground cursor-not-allowed opacity-50"
+            : "hover:bg-surface text-foreground"
+        }`}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <span className="text-sm text-muted-foreground">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={onNextPage}
+        disabled={currentPage === totalPages}
+        className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${
+          currentPage === totalPages
+            ? "text-muted-foreground cursor-not-allowed opacity-50"
+            : "hover:bg-surface text-foreground"
+        }`}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 function TabButton({ active, icon: Icon, label, onClick }) {
   return (
     <button
@@ -926,7 +1025,6 @@ function Field({ label, children, className = "" }) {
   );
 }
 
-// New API function to get services
 function getServices() {
   return apiFetch("/services");
 }
@@ -1004,7 +1102,6 @@ async function fetchBookingsForVehicles(profileVehicles) {
   return sortBookings(bookingRows);
 }
 
-// Helper functions (normalizeParts, normalizePartRequests, normalizeReviewableSales, etc. remain the same)
 function normalizeParts(data) {
   const rows = Array.isArray(data) ? data : data?.items || data?.parts || data?.$values || [];
 
