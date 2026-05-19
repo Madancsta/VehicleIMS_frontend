@@ -32,7 +32,6 @@ const navByRole = {
     { to: "/admin/purchases", label: "Purchase Invoices", icon: FileText },
     { to: "/admin/reports", label: "Financial Reports", icon: BarChart3 },
     { to: "/admin/customers-report", label: "Customer Reports", icon: BarChart3 },
-    { to: "/admin/customer-details", label: "Customer Details", icon: BarChart3 },
   ],
   staff: [
     { to: "/staff", label: "Dashboard", icon: LayoutDashboard },
