@@ -117,8 +117,20 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
     setMobileNavOpen(false);
   }, [currentPath]);
 
-  const totalUnread =
-    summary.totalUnread ?? (summary.lowStockCount || 0) + (summary.unpaidCreditCount || 0);
+  // Pagination calculations
+  const totalPages = Math.ceil(notifications.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentNotifications = notifications.slice(startIndex, startIndex + itemsPerPage);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const totalUnread = (summary.lowStockCount || 0) + (summary.unpaidCreditCount || 0);
 
   const refreshNotifications = async () => {
     await Promise.all([fetchNotifications(), fetchSummary()]);
@@ -156,7 +168,6 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
             unpaidCreditCount: unpaidCreditUnread
               ? Math.max((current.unpaidCreditCount || 0) - 1, 0)
               : current.unpaidCreditCount,
-            totalUnread: Math.max((current.totalUnread || totalUnread || 0) - 1, 0),
           };
         });
         await refreshNotifications();
@@ -185,7 +196,6 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
           ...current,
           lowStockCount: 0,
           unpaidCreditCount: 0,
-          totalUnread: 0,
         }));
         await refreshNotifications();
       } else {
@@ -323,6 +333,10 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
               formatTime={formatTime}
               onMarkAsRead={markNotificationAsRead}
               onMarkAllAsRead={markAllNotificationsAsRead}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onNextPage={goToNextPage}
+              onPrevPage={goToPrevPage}
             />
           )}
 
@@ -343,10 +357,15 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
 function NotifDropdown({
   onClose,
   notifications = [],
+  allNotifications = [],
   loading = false,
   formatTime,
   onMarkAsRead,
   onMarkAllAsRead,
+  currentPage,
+  totalPages,
+  onNextPage,
+  onPrevPage,
 }) {
   const getIconByType = (type) => {
     if (type === "LowStock") return <PackageOpen className="h-4 w-4" />;
@@ -373,9 +392,9 @@ function NotifDropdown({
           ) : notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
           ) : (
-            notifications.map((n) => (
+            notifications.map((n, idx) => (
               <button
-                key={`${n.type}-${n.id}`}
+                key={`${n.type}-${n.id}-${idx}`}
                 type="button"
                 onClick={() => onMarkAsRead?.(n)}
                 className={`w-full p-3 text-left border-b border-border last:border-0 hover:bg-surface transition-colors ${
@@ -403,6 +422,37 @@ function NotifDropdown({
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-2 border-t border-border flex items-center justify-center gap-4">
+            <button
+              onClick={onPrevPage}
+              disabled={currentPage === 1}
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                currentPage === 1
+                  ? "text-muted-foreground cursor-not-allowed opacity-50"
+                  : "hover:bg-surface text-foreground"
+              }`}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs text-muted-foreground">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={onNextPage}
+              disabled={currentPage === totalPages}
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                currentPage === totalPages
+                  ? "text-muted-foreground cursor-not-allowed opacity-50"
+                  : "hover:bg-surface text-foreground"
+              }`}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         <div className="p-2 border-t border-border">
           <button
