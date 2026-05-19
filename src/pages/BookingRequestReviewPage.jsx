@@ -726,7 +726,15 @@ function BookingRequestReviewPage() {
                         </p>
                       </div>
 
-                      <span className="rounded-full bg-warning/20 px-3 py-1 text-xs font-medium text-warning-foreground">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${
+                          Number(request.status) === 4
+                            ? "bg-success/15 text-success"
+                            : Number(request.status) === 3
+                              ? "bg-destructive/15 text-destructive"
+                              : "bg-warning/20 text-warning-foreground"
+                        }`}
+                      >
                         {formatRequestStatus(request.status)}
                       </span>
                     </div>
