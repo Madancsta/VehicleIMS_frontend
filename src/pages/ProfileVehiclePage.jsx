@@ -3,7 +3,7 @@ import { Car, Plus } from "lucide-react";
 import CustomerLayout from "../components/CustomerLayout";
 import { Field, inputCls, Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
-import { apiFetch } from '../api/clientApi';
+import { apiFetch } from "../api/clientApi";
 
 function ProfileVehiclePage() {
   const customerId = localStorage.getItem("customerId");
@@ -106,11 +106,7 @@ function ProfileVehiclePage() {
       setEditingVehicle(null);
       setVehicleForm(toVehicleForm());
       await loadProfile();
-      setMessage(
-        editingVehicle
-          ? "Vehicle updated successfully."
-          : "Vehicle added successfully.",
-      );
+      setMessage(editingVehicle ? "Vehicle updated successfully." : "Vehicle added successfully.");
     } catch (err) {
       setMessage(err.message || "Unable to save vehicle.");
     } finally {
@@ -134,9 +130,7 @@ function ProfileVehiclePage() {
           onSubmit={handleProfileUpdate}
           className="rounded-lg border border-border bg-card p-6"
         >
-          <div className="font-display mb-4 font-semibold">
-            Personal Information
-          </div>
+          <div className="font-display mb-4 font-semibold">Personal Information</div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="First name">
               <input
@@ -234,7 +228,10 @@ function ProfileVehiclePage() {
           {vehicles.length > 0 ? (
             vehicles.map((vehicle) => (
               <div
-                key={getVehicleId(vehicle) || getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber")}
+                key={
+                  getVehicleId(vehicle) ||
+                  getVehicleValue(vehicle, "vehicleNumber", "VehicleNumber")
+                }
                 className="mb-2 flex items-center gap-4 rounded-md border border-border p-4 last:mb-0"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-surface">
@@ -261,9 +258,7 @@ function ProfileVehiclePage() {
               </div>
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">
-              No vehicles registered yet.
-            </p>
+            <p className="text-sm text-muted-foreground">No vehicles registered yet.</p>
           )}
         </div>
       </div>
@@ -326,9 +321,7 @@ function VehicleFormModal({
             <input
               className={inputCls}
               value={vehicleForm.brand}
-              onChange={(event) =>
-                setVehicleForm({ ...vehicleForm, brand: event.target.value })
-              }
+              onChange={(event) => setVehicleForm({ ...vehicleForm, brand: event.target.value })}
               placeholder="Toyota"
               required
             />
@@ -337,31 +330,41 @@ function VehicleFormModal({
             <input
               className={inputCls}
               value={vehicleForm.model}
-              onChange={(event) =>
-                setVehicleForm({ ...vehicleForm, model: event.target.value })
-              }
+              onChange={(event) => setVehicleForm({ ...vehicleForm, model: event.target.value })}
               placeholder="Corolla"
               required
             />
           </Field>
           <Field label="Year">
-            <input
+            <select
               className={inputCls}
-              type="number"
               value={vehicleForm.year}
               onChange={(event) =>
-                setVehicleForm({ ...vehicleForm, year: event.target.value })
+                setVehicleForm({
+                  ...vehicleForm,
+                  year: event.target.value,
+                })
               }
               required
-            />
+            >
+              <option value="">Select Year</option>
+
+              {Array.from({ length: new Date().getFullYear() - 1980 + 1 }, (_, index) => {
+                const year = new Date().getFullYear() - index;
+
+                return (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                );
+              })}
+            </select>
           </Field>
           <Field label="Color">
             <input
               className={inputCls}
               value={vehicleForm.color}
-              onChange={(event) =>
-                setVehicleForm({ ...vehicleForm, color: event.target.value })
-              }
+              onChange={(event) => setVehicleForm({ ...vehicleForm, color: event.target.value })}
               placeholder="Black"
               required
             />
