@@ -2,6 +2,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Modal, Field, inputCls } from "../components/Modal";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { apiFetch } from '../api/clientApi';
 
 function StaffPage() {
     const [addOpen, setAddOpen] = useState(false);
@@ -9,26 +10,21 @@ function StaffPage() {
     const [staffList, setStaffList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-
-    const API_URL = "http://localhost:5229/api/staff";
-    const token = localStorage.getItem("token");
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState("");
 
     // Fetch all staff
     const fetchStaff = async () => {
-        if (!token) return;
         setLoading(true);
+        setError("");
         try {
-            const response = await fetch(API_URL, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setStaffList(data);
-            } else {
-                setError("Failed to fetch staff");
-            }
+            const data = await getStaff();
+            const staffListData = Array.isArray(data) ? data : data?.items || data?.$values || [];
+            setStaffList(staffListData);
         } catch (err) {
-            setError("Error connecting to server");
+            console.error("Failed to fetch staff:", err);
+            setError(err.message || "Failed to load staff members");
+            setMessageType("error");
         } finally {
             setLoading(false);
         }
@@ -40,102 +36,113 @@ function StaffPage() {
 
     // Create staff
     const handleCreate = async (formData) => {
+        setLoading(true);
+        setMessage("");
         try {
-            const response = await fetch(API_URL, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(formData)
-            });
-            if (response.ok) {
-                await fetchStaff();
-                setAddOpen(false);
-            } else {
-                const error = await response.json();
-                alert(error || "Failed to create staff");
-            }
+            await createStaff(formData);
+            setMessage(`Staff member ${formData.firstName} ${formData.lastName} created successfully!`);
+            setMessageType("success");
+            await fetchStaff();
+            setAddOpen(false);
+            
+            // Clear success message after 3 seconds
+            setTimeout(() => {
+                setMessage("");
+            }, 3000);
         } catch (err) {
-            alert("Error creating staff");
+            console.error("Failed to create staff:", err);
+            setMessage(err.message || "Failed to create staff member");
+            setMessageType("error");
+        } finally {
+            setLoading(false);
         }
     };
 
     // Update staff
     const handleUpdate = async (userId, formData) => {
+        setLoading(true);
+        setMessage("");
         try {
-            const response = await fetch(`${API_URL}/${userId}`, {
-                method: "PUT",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(formData)
-            });
-            if (response.ok) {
-                await fetchStaff();
-                setEditing(null);
-            } else {
-                alert("Failed to update staff");
-            }
+            await updateStaff(userId, formData);
+            setMessage(`Staff member updated successfully!`);
+            setMessageType("success");
+            await fetchStaff();
+            setEditing(null);
+            
+            setTimeout(() => {
+                setMessage("");
+            }, 3000);
         } catch (err) {
-            alert("Error updating staff");
+            console.error("Failed to update staff:", err);
+            setMessage(err.message || "Failed to update staff member");
+            setMessageType("error");
+        } finally {
+            setLoading(false);
         }
     };
 
     // Deactivate staff
-    const handleDeactivate = async (userId) => {
-        if (!confirm("Deactivate this staff member?")) return;
+    const handleDeactivate = async (userId, name) => {
+        if (!confirm(`Deactivate ${name}? They will no longer have access to the system.`)) return;
+        
+        setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/deactivate/${userId}`, {
-                method: "PUT",
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (response.ok) {
-                await fetchStaff();
-            } else {
-                alert("Failed to deactivate staff");
-            }
+            await deactivateStaff(userId);
+            setMessage(`${name} has been deactivated.`);
+            setMessageType("success");
+            await fetchStaff();
+            
+            setTimeout(() => {
+                setMessage("");
+            }, 3000);
         } catch (err) {
-            alert("Error deactivating staff");
+            console.error("Failed to deactivate staff:", err);
+            setMessage(err.message || "Failed to deactivate staff member");
+            setMessageType("error");
+        } finally {
+            setLoading(false);
         }
     };
 
     // Activate staff
-    const handleActivate = async (userId) => {
+    const handleActivate = async (userId, name) => {
+        setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/activate/${userId}`, {
-                method: "PUT",
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (response.ok) {
-                await fetchStaff();
-            } else {
-                alert("Failed to activate staff");
-            }
+            await activateStaff(userId);
+            setMessage(`${name} has been activated.`);
+            setMessageType("success");
+            await fetchStaff();
+            
+            setTimeout(() => {
+                setMessage("");
+            }, 3000);
         } catch (err) {
-            alert("Error activating staff");
+            console.error("Failed to activate staff:", err);
+            setMessage(err.message || "Failed to activate staff member");
+            setMessageType("error");
+        } finally {
+            setLoading(false);
         }
     };
 
     // Change role
-    const handleChangeRole = async (userId, newRole) => {
+    const handleChangeRole = async (userId, newRole, name) => {
+        setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/change-role`, {
-                method: "PUT",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ userId, role: newRole })
-            });
-            if (response.ok) {
-                await fetchStaff();
-            } else {
-                alert("Failed to change role");
-            }
+            await changeStaffRole(userId, newRole);
+            setMessage(`${name}'s role changed to ${newRole}.`);
+            setMessageType("success");
+            await fetchStaff();
+            
+            setTimeout(() => {
+                setMessage("");
+            }, 3000);
         } catch (err) {
-            alert("Error changing role");
+            console.error("Failed to change role:", err);
+            setMessage(err.message || "Failed to change staff role");
+            setMessageType("error");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -314,6 +321,43 @@ function StaffFormModal({ open, onClose, title, member, onSubmit, isEdit }) {
         )}
       </div>
     </Modal>);
+}
+// API Functions using apiFetch
+async function getStaff() {
+    return apiFetch("/staff");
+}
+
+async function createStaff(data) {
+    return apiFetch("/staff", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
+}
+
+async function updateStaff(userId, data) {
+    return apiFetch(`/staff/${userId}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+    });
+}
+
+async function deactivateStaff(userId) {
+    return apiFetch(`/staff/deactivate/${userId}`, {
+        method: "PUT",
+    });
+}
+
+async function activateStaff(userId) {
+    return apiFetch(`/staff/activate/${userId}`, {
+        method: "PUT",
+    });
+}
+
+async function changeStaffRole(userId, role) {
+    return apiFetch("/staff/change-role", {
+        method: "PUT",
+        body: JSON.stringify({ userId, role }),
+    });
 }
 
 export default StaffPage;

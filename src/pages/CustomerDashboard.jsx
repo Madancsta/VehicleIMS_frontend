@@ -12,11 +12,7 @@ import {
 import { Link } from "../components/Link";
 import CustomerLayout from "../components/CustomerLayout";
 import { PageHeader } from "../components/PageHeader";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5229/api").replace(
-  /\/$/,
-  "",
-);
+import { apiFetch } from '../api/clientApi';
 
 function CustomerDashboard() {
   const customerId = localStorage.getItem("customerId");
@@ -254,50 +250,6 @@ function MessageBox({ message }) {
       {message}
     </div>
   );
-}
-
-async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: getAuthHeaders(options.headers),
-  });
-  return readApiResponse(res);
-}
-
-function getAuthHeaders(headers = {}) {
-  const accessToken = localStorage.getItem("accessToken");
-
-  return {
-    ...headers,
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-  };
-}
-
-async function readApiResponse(res) {
-  const text = await res.text();
-
-  if (!res.ok) {
-    let errorMessage = text || "Request failed.";
-
-    try {
-      const parsed = JSON.parse(text);
-      errorMessage = parsed.message || parsed.Message || parsed.title || errorMessage;
-    } catch {
-      // Plain-text backend errors are already handled above.
-    }
-
-    throw new Error(errorMessage);
-  }
-
-  if (!text) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
 }
 
 function getCustomerProfile(customerId) {
