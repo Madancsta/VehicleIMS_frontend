@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Calendar, MessageSquare, PackageSearch, RefreshCw, Star } from "lucide-react";
 import CustomerLayout from "../components/CustomerLayout";
 import { PageHeader } from "../components/PageHeader";
-import { apiFetch } from '../api/clientApi';
+import { apiFetch } from "../api/clientApi";
 
 const inputClassName =
   "h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted-foreground";
@@ -18,7 +18,7 @@ function BookingRequestReviewPage() {
   const [vehicles, setVehicles] = useState([]);
   const [parts, setParts] = useState([]);
   const [partsNotice, setPartsNotice] = useState("");
-  
+
   // Services state - loaded from backend
   const [services, setServices] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
@@ -58,21 +58,21 @@ function BookingRequestReviewPage() {
     try {
       setServiceTypesLoading(true);
       const data = await getServices();
-      
+
       // Normalize services data
       let servicesList = Array.isArray(data) ? data : data?.items || data?.$values || [];
-      
+
       // Extract unique service types from the services
-      const uniqueServiceTypes = [...new Set(servicesList.map(service => service.serviceType))];
-      
+      const uniqueServiceTypes = [...new Set(servicesList.map((service) => service.serviceType))];
+
       setServices(servicesList);
       setServiceTypes(uniqueServiceTypes);
-      
+
       // Set default service type if available
       if (uniqueServiceTypes.length > 0 && !bookingForm.serviceType) {
-        setBookingForm(prev => ({
+        setBookingForm((prev) => ({
           ...prev,
-          serviceType: uniqueServiceTypes[0]
+          serviceType: uniqueServiceTypes[0],
         }));
       }
     } catch (error) {
@@ -88,9 +88,9 @@ function BookingRequestReviewPage() {
         "AC Service",
       ];
       setServiceTypes(fallbackTypes);
-      setBookingForm(prev => ({
+      setBookingForm((prev) => ({
         ...prev,
-        serviceType: prev.serviceType || fallbackTypes[0]
+        serviceType: prev.serviceType || fallbackTypes[0],
       }));
     } finally {
       setServiceTypesLoading(false);
@@ -279,7 +279,19 @@ function BookingRequestReviewPage() {
   async function handleRequestSubmit(e) {
     e.preventDefault();
     setMessage("");
+    const selectedBooking = bookings.find(
+      (booking) => String(getBookingId(booking)) === String(requestForm.bookingId),
+    );
 
+    if (!selectedBooking) {
+      setMessage("Please select a booking before submitting request.");
+      return;
+    }
+
+    if (isCompletedBooking(selectedBooking)) {
+      setMessage("Part request cannot be submitted for a completed booking.");
+      return;
+    }
     const payload = {
       bookingId: Number(requestForm.bookingId),
       partId: Number(requestForm.partId),
@@ -335,6 +347,7 @@ function BookingRequestReviewPage() {
   }
 
   const selectedPart = parts.find((part) => String(part.partId) === requestForm.partId);
+  const requestableBookings = bookings.filter((booking) => !isCompletedBooking(booking));
 
   return (
     <CustomerLayout>
@@ -578,11 +591,11 @@ function BookingRequestReviewPage() {
                   value={requestForm.bookingId}
                   onChange={handleRequestChange}
                   className={inputClassName}
-                  disabled={!bookings.length}
+                  disabled={!requestableBookings.length}
                   required
                 >
                   <option value="">Select booking</option>
-                  {bookings.map((booking) => {
+                  {requestableBookings.map((booking) => {
                     const bookingId = getBookingId(booking);
 
                     return (
@@ -595,6 +608,11 @@ function BookingRequestReviewPage() {
                 {!bookings.length && (
                   <p className="mt-2 text-xs text-muted-foreground">
                     Create a booking before requesting unavailable parts.
+                  </p>
+                )}
+                {bookings.length > 0 && !requestableBookings.length && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    All bookings are completed. You cannot request parts for completed bookings.
                   </p>
                 )}
               </Field>
@@ -613,9 +631,7 @@ function BookingRequestReviewPage() {
                     </option>
                   ))}
                 </select>
-                {partsNotice && (
-                  <p className="mt-2 text-xs text-muted-foreground">{partsNotice}</p>
-                )}
+                {partsNotice && <p className="mt-2 text-xs text-muted-foreground">{partsNotice}</p>}
               </Field>
 
               <Field label="Part ID">
@@ -655,7 +671,7 @@ function BookingRequestReviewPage() {
 
             <button
               type="submit"
-              disabled={loading || !bookings.length}
+              disabled={loading || !requestableBookings.length}
               className="mt-6 h-11 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? "Saving..." : "Submit Request"}
@@ -762,9 +778,7 @@ function BookingRequestReviewPage() {
                   })}
                 </select>
                 {reviewableSalesMessage && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {reviewableSalesMessage}
-                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">{reviewableSalesMessage}</p>
                 )}
               </Field>
 
@@ -824,11 +838,13 @@ function BookingRequestReviewPage() {
                     </p>
 
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {getValue(sale, "vehicleNumber", "VehicleNumber") || "Vehicle details pending"}
+                      {getValue(sale, "vehicleNumber", "VehicleNumber") ||
+                        "Vehicle details pending"}
                     </p>
 
                     <p className="mt-3 text-xs text-muted-foreground">
-                      Sale #{getReviewableSaleId(sale)} - {formatDate(getValue(sale, "salesDate", "SalesDate"))} -{" "}
+                      Sale #{getReviewableSaleId(sale)} -{" "}
+                      {formatDate(getValue(sale, "salesDate", "SalesDate"))} -{" "}
                       {formatCurrency(getValue(sale, "salesAmount", "SalesAmount"))}
                     </p>
                   </div>
@@ -1100,6 +1116,14 @@ function getBookingOptionLabel(booking) {
   const date = formatDate(getValue(booking, "bookingDate", "BookingDate"));
 
   return `Booking #${bookingId} - ${service} - ${date}`;
+}
+
+function getBookingStatus(booking) {
+  return formatStatus(getValue(booking, "bookingStatus", "BookingStatus", "status", "Status"));
+}
+
+function isCompletedBooking(booking) {
+  return getBookingStatus(booking) === "Completed";
 }
 
 function getVehicleLabel(vehicle) {
