@@ -125,8 +125,8 @@ function HistoryPage() {
             <tr>
                 <td style="padding: 10px;">${item.partName || "Item"}</td>
                 <td style="padding: 10px; text-align: right;">${item.quantity}</td>
-                <td style="padding: 10px; text-align: right;">रु ${(item.unitPrice || 0).toLocaleString()}</td>
-                <td style="padding: 10px; text-align: right;">रु ${((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()}</td>
+                <td style="padding: 10px; text-align: right;">NPR ${(item.unitPrice || 0).toLocaleString()}</td>
+                <td style="padding: 10px; text-align: right;">NPR ${((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()}</td>
             </tr>
         `).join('') || '<tr><td colspan="4" style="padding: 10px; text-align: center;">No items</td></tr>';
         
@@ -195,7 +195,7 @@ function HistoryPage() {
                             ${itemsHtml}
                             <tr class="total">
                                 <td colspan="3" class="text-right"><strong>Total Amount:</strong></td>
-                                <td class="text-right"><strong>रु ${(sale.salesAmount || 0).toLocaleString()}</strong></td>
+                                <td class="text-right"><strong>NPR ${(sale.salesAmount || 0).toLocaleString()}</strong></td>
                             </tr>
                         </tbody>
                     </table>
@@ -261,11 +261,11 @@ function HistoryPage() {
                 </div>
                 <div className="stat-card">
                     <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Spent</div>
-                    <div className="font-display text-2xl font-bold mt-2">रु {summary.totalSpent.toLocaleString()}</div>
+                    <div className="font-display text-2xl font-bold mt-2">NPR {summary.totalSpent.toLocaleString()}</div>
                 </div>
                 <div className="stat-card">
                     <div className="text-xs uppercase tracking-wider text-muted-foreground">This Month</div>
-                    <div className="font-display text-2xl font-bold mt-2">रु {summary.thisMonth.toLocaleString()}</div>
+                    <div className="font-display text-2xl font-bold mt-2">NPR {summary.thisMonth.toLocaleString()}</div>
                 </div>
             </div>
 
@@ -301,7 +301,7 @@ function HistoryPage() {
                                             {sale.items?.length || sale.itemCount || "-"}
                                         </td>
                                         <td className="px-6 py-3 text-right font-semibold">
-                                            रु {(sale.salesAmount || 0).toLocaleString()}
+                                            NPR {(sale.salesAmount || 0).toLocaleString()}
                                         </td>
                                         <td className="px-6 py-3 text-center">
                                             <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(sale.paymentStatus)}`}>

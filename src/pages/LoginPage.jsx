@@ -160,14 +160,6 @@ function LoginPage() {
                             Create an account
                         </Link>
                     </div>
-
-                    {/* Test credentials */}
-                    <div className="mt-6 p-3 rounded-md bg-surface border border-border text-xs">
-                        <p className="font-medium mb-2">Test Accounts:</p>
-                        <p>Admin: admin@vehicleims.com / Admin@123</p>
-                        <p>Staff: staff@vehicleims.com / Staff@123</p>
-                        <p>Customer: customer@vehicleims.com / Customer@123</p>
-                    </div>
                 </div>
             </div>
         </div>

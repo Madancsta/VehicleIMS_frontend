@@ -16,6 +16,7 @@ export default function CustomerLayout({ children }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [displayCount, setDisplayCount] = useState(5); // Show 5 initially
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState({ totalUnread: 0 });
 
@@ -101,6 +102,17 @@ export default function CustomerLayout({ children }) {
     if (type === "Service") return "✅";
     return "🔔";
   };
+
+  const handleShowMore = () => {
+    setDisplayCount(prev => prev + 5);
+  };
+
+  const handleShowLess = () => {
+    setDisplayCount(5);
+  };
+
+  const displayedNotifications = notifications.slice(0, displayCount);
+  const hasMore = displayCount < notifications.length;
 
   const sidebarContent = (
     <>
@@ -193,8 +205,14 @@ export default function CustomerLayout({ children }) {
           {notifOpen && (
             <NotifDropdown 
               onClose={() => setNotifOpen(false)} 
-              notifications={notifications}
+              notifications={displayedNotifications}
+              allNotifications={notifications}
               loading={loading}
+              hasMore={hasMore}
+              onShowMore={handleShowMore}
+              onShowLess={handleShowLess}
+              currentCount={displayCount}
+              totalCount={notifications.length}
             />
           )}
 
@@ -231,7 +249,17 @@ export default function CustomerLayout({ children }) {
   );
 }
 
-function NotifDropdown({ onClose, notifications, loading }) {
+function NotifDropdown({ 
+  onClose, 
+  notifications, 
+  allNotifications, 
+  loading, 
+  hasMore, 
+  onShowMore, 
+  onShowLess,
+  currentCount,
+  totalCount 
+}) {
   const getNotificationIcon = (type) => {
     if (type === "Booking") return "📅";
     if (type === "PartRequest") return "🔧";
@@ -245,6 +273,21 @@ function NotifDropdown({ onClose, notifications, loading }) {
     return date.toLocaleDateString();
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
+
   return (
     <>
       <button
@@ -253,30 +296,35 @@ function NotifDropdown({ onClose, notifications, loading }) {
         className="fixed inset-0 z-10"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-12 z-20 w-[calc(100vw-2rem)] max-w-sm rounded-md border border-border bg-card shadow-lg sm:w-80">
+      <div className="absolute right-0 top-12 z-20 w-[calc(100vw-2rem)] max-w-sm rounded-md border border-border bg-card shadow-lg sm:w-96">
         <div className="border-b border-border p-3 text-sm font-medium flex justify-between items-center">
           <span>Notifications</span>
-          {notifications.length > 0 && (
-            <span className="text-xs text-muted-foreground">{notifications.length} total</span>
+          {totalCount > 0 && (
+            <span className="text-xs text-muted-foreground">{totalCount} total</span>
           )}
         </div>
-        <div className="max-h-80 overflow-auto">
+        
+        <div className="max-h-96 overflow-auto">
           {loading ? (
             <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
           ) : notifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
           ) : (
-            notifications.map((n, i) => (
-              <div key={i} className="border-b border-border p-3 last:border-0 hover:bg-surface">
-                <div className="flex items-start gap-2">
-                  <span className="text-lg">{getNotificationIcon(n.type)}</span>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{n.title}</div>
-                    <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {n.createdAt ? formatDate(n.createdAt) : ""}
+            <>
+              {notifications.map((n, i) => (
+                <div key={i} className="border-b border-border p-3 last:border-0 hover:bg-surface transition-colors">
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">{getNotificationIcon(n.type)}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-medium">{n.title}</div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">
+                          {formatTime(n.createdAt)}
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
                       {n.status && (
-                        <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
+                        <span className={`inline-block mt-2 px-1.5 py-0.5 rounded text-xs ${
                           n.status === "Completed" || n.status === "Approved" 
                             ? "bg-green-100 text-green-700" 
                             : "bg-yellow-100 text-yellow-700"
@@ -287,9 +335,34 @@ function NotifDropdown({ onClose, notifications, loading }) {
                     </div>
                   </div>
                 </div>
+              ))}
+              
+              {/* Show More / Show Less Buttons */}
+              <div className="p-2 border-t border-border">
+                {hasMore ? (
+                  <button
+                    onClick={onShowMore}
+                    className="w-full text-center text-xs text-primary py-2 hover:underline"
+                  >
+                    Show more ({currentCount} of {totalCount})
+                  </button>
+                ) : totalCount > 5 ? (
+                  <button
+                    onClick={onShowLess}
+                    className="w-full text-center text-xs text-muted-foreground py-2 hover:underline"
+                  >
+                    Show less
+                  </button>
+                ) : null}
               </div>
-            ))
+            </>
           )}
+        </div>
+        
+        <div className="p-2 border-t border-border">
+          <button className="w-full text-center text-xs text-muted-foreground py-1 hover:text-foreground transition-colors">
+            Mark all as read
+          </button>
         </div>
       </div>
     </>
