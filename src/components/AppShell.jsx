@@ -19,7 +19,9 @@ import {
   X,
   PackageOpen,
   CreditCard,
-  AlertTriangle
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -61,25 +63,24 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
     lowStockCount: 0,
     unpaidCreditCount: 0,
   });
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const API_URL = "http://localhost:5229/api/notification";
   const token = localStorage.getItem("token");
 
   const fetchNotifications = async () => {
     if (!token) return;
-
     setLoading(true);
-
     try {
       const response = await fetch(`${API_URL}/all`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
+        setCurrentPage(1);
       }
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
@@ -90,14 +91,10 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
 
   const fetchSummary = async () => {
     if (!token) return;
-
     try {
       const response = await fetch(`${API_URL}/summary`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.ok) {
         const data = await response.json();
         setSummary(data);
@@ -110,18 +107,28 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
   useEffect(() => {
     fetchNotifications();
     fetchSummary();
-
     const interval = setInterval(() => {
       fetchNotifications();
       fetchSummary();
     }, 30000);
-
     return () => clearInterval(interval);
   }, [token]);
 
   useEffect(() => {
     setMobileNavOpen(false);
   }, [currentPath]);
+
+  const totalPages = Math.ceil(notifications.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentNotifications = notifications.slice(startIndex, startIndex + itemsPerPage);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
 
   const totalUnread = (summary.lowStockCount || 0) + (summary.unpaidCreditCount || 0);
 
@@ -160,7 +167,6 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
         <div className="flex items-center">
           <img src={logo} alt="Gearix Logo" className="w-full px-4 brightness-0 invert" />
         </div>
-
         <button
           onClick={() => setMobileNavOpen(false)}
           className="lg:hidden h-8 w-8 rounded-md hover:bg-sidebar-accent/60 flex items-center justify-center"
@@ -174,7 +180,6 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
         {items.map((item) => {
           const Icon = item.icon;
           const active = location.pathname === item.to;
-
           return (
             <Link
               key={item.to}
@@ -207,26 +212,19 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 w-64 bg-sidebar text-sidebar-foreground flex-col border-r border-sidebar-border">
         {sidebarContent}
       </aside>
 
-      {/* Mobile sidebar drawer */}
       {mobileNavOpen && (
         <>
-          <div
-            className="lg:hidden fixed inset-0 bg-black/50 z-40"
-            onClick={() => setMobileNavOpen(false)}
-          />
-
+          <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileNavOpen(false)} />
           <aside className="lg:hidden fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border z-50">
             {sidebarContent}
           </aside>
         </>
       )}
 
-      {/* Main content */}
       <div className="relative flex-1 flex flex-col min-w-0 lg:ml-64">
         <button
           type="button"
@@ -245,7 +243,6 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
             aria-label="Notifications"
           >
             <Bell className="h-4 w-4" />
-
             {totalUnread > 0 && (
               <span className="absolute right-1 top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] text-white">
                 {totalUnread}
@@ -256,9 +253,14 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
           {notifOpen && (
             <NotifDropdown
               onClose={() => setNotifOpen(false)}
-              notifications={notifications}
+              notifications={currentNotifications}
+              allNotifications={notifications}
               loading={loading}
               formatTime={formatTime}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onNextPage={goToNextPage}
+              onPrevPage={goToPrevPage}
             />
           )}
 
@@ -266,7 +268,6 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               {role.charAt(0).toUpperCase()}
             </div>
-
             <div className="hidden text-sm font-medium capitalize sm:block">{role} User</div>
           </div>
         </div>
@@ -277,7 +278,17 @@ export function AppShell({ role, children, currentPath = window.location.pathnam
   );
 }
 
-function NotifDropdown({ onClose, notifications = [], loading = false, formatTime }) {
+function NotifDropdown({ 
+  onClose, 
+  notifications = [], 
+  allNotifications = [],
+  loading = false, 
+  formatTime,
+  currentPage,
+  totalPages,
+  onNextPage,
+  onPrevPage
+}) {
   const getIconByType = (type) => {
     if (type === "LowStock") return <PackageOpen className="h-4 w-4" />;
     if (type === "OutOfStock") return <AlertTriangle className="h-4 w-4" />;
@@ -292,9 +303,8 @@ function NotifDropdown({ onClose, notifications = [], loading = false, formatTim
       <div className="absolute right-0 top-12 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-card border border-border rounded-md shadow-lg z-20">
         <div className="p-3 border-b border-border font-medium text-sm flex justify-between items-center">
           <span>Notifications</span>
-
-          {notifications.length > 0 && (
-            <span className="text-xs text-muted-foreground">{notifications.length} total</span>
+          {allNotifications.length > 0 && (
+            <span className="text-xs text-muted-foreground">{allNotifications.length} total</span>
           )}
         </div>
 
@@ -314,13 +324,10 @@ function NotifDropdown({ onClose, notifications = [], loading = false, formatTim
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-sm font-medium">{n.title}</div>
                       <div className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatTime ? formatTime(n.createdAt) : n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}
+                        {formatTime(n.createdAt)}
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">{n.message}</div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -328,11 +335,38 @@ function NotifDropdown({ onClose, notifications = [], loading = false, formatTim
           )}
         </div>
 
-        <div className="p-2 border-t border-border">
-          <button className="w-full text-center text-xs text-muted-foreground py-1 hover:text-foreground transition-colors">
-            Mark all as read
-          </button>
-        </div>
+        {/* Simple Pagination - Just Icons */}
+        {totalPages > 1 && (
+          <div className="p-2 border-t border-border flex items-center justify-center gap-4">
+            <button
+              onClick={onPrevPage}
+              disabled={currentPage === 1}
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                currentPage === 1
+                  ? "text-muted-foreground cursor-not-allowed opacity-50"
+                  : "hover:bg-surface text-foreground"
+              }`}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            
+            <span className="text-xs text-muted-foreground">
+              {currentPage} / {totalPages}
+            </span>
+            
+            <button
+              onClick={onNextPage}
+              disabled={currentPage === totalPages}
+              className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+                currentPage === totalPages
+                  ? "text-muted-foreground cursor-not-allowed opacity-50"
+                  : "hover:bg-surface text-foreground"
+              }`}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
