@@ -1,6 +1,7 @@
 import { Bell, Calendar, History, LayoutDashboard, LogOut, Menu, Wrench, X, CheckCircle, User, MessageSquare, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "./Link";
+import { Modal, Field, inputCls } from "../components/Modal";
 import logo from "../assets/gear.png";
 
 const navItems = [
