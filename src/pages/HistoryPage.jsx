@@ -15,22 +15,17 @@ function HistoryPage() {
 
     const fetchPurchaseHistory = async () => {
         setLoading(true);
-        
         if (!token) {
             setError("Please login to view your purchase history");
             setLoading(false);
             return;
         }
-
         try {
             const data = await apiFetch("/customer/purchase-history");
-            
             const orders = data.orders || (Array.isArray(data) ? data : []);
             const totalSpent = data.totalSpent || orders.reduce((sum, sale) => sum + (Number(sale.salesAmount) || 0), 0);
             const totalOrders = data.totalOrders || orders.length;
-            
             setSales(orders);
-            
             const currentMonth = new Date().getMonth();
             const currentYear = new Date().getFullYear();
             const thisMonthSales = orders.filter(sale => {
@@ -38,14 +33,8 @@ function HistoryPage() {
                 return !isNaN(saleDate.getTime()) && saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
             });
             const thisMonthTotal = thisMonthSales.reduce((sum, sale) => sum + (Number(sale.salesAmount) || 0), 0);
-
-            setSummary({
-                totalInvoices: totalOrders,
-                totalSpent: totalSpent,
-                thisMonth: thisMonthTotal
-            });
+            setSummary({ totalInvoices: totalOrders, totalSpent: totalSpent, thisMonth: thisMonthTotal });
             setError("");
-            
         } catch (err) {
             console.error("Fetch error:", err);
             setError("Unable to load purchase history. Please try again later.");
@@ -87,9 +76,112 @@ function HistoryPage() {
         return "bg-yellow-100 text-yellow-700";
     };
 
+    // ── Download PDF (using jsPDF + autoTable) ─────────────────────────────
+    const downloadInvoicePDF = async (sale) => {
+        try {
+            const { jsPDF } = await import("jspdf");
+            const { default: autoTable } = await import("jspdf-autotable");
+            const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 15;
+            let y = 20;
+
+            // Header
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("GEARIX", margin, y);
+            y += 6;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text("Vehicle Parts & Services", margin, y);
+            y += 5;
+            doc.text("Kathmandu, Nepal", margin, y);
+            y += 5;
+            doc.text("Phone: +977-9800000000", margin, y);
+            y += 8;
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.setTextColor(0);
+            doc.text("TAX INVOICE", margin, y);
+            y += 10;
+
+            // Invoice info
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Invoice Number: ${sale.invoiceNumber || `INV-${sale.salesId}`}`, margin, y);
+            doc.text(`Date: ${formatDate(sale.salesDate)}`, pageWidth - margin - 40, y, { align: "right" });
+            y += 6;
+            doc.text(`Payment Status: ${formatStatus(sale.paymentStatus)}`, margin, y);
+            doc.text(`Payment Method: ${sale.paymentMethod || "Cash"}`, pageWidth - margin - 40, y, { align: "right" });
+            y += 12;
+
+            // Bill To
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("Bill To:", margin, y);
+            y += 5;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text("Customer", margin, y);
+            y += 10;
+
+            // Items table
+            const items = sale.items || [];
+            const tableBody = items.map(item => [
+                item.partName || "Item",
+                item.quantity,
+                `NPR ${(item.unitPrice || 0).toLocaleString()}`,
+                `NPR ${((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()}`
+            ]);
+
+            autoTable(doc, {
+                startY: y,
+                head: [["Description", "Qty", "Unit Price", "Total"]],
+                body: tableBody.length ? tableBody : [["No items available", "", "", ""]],
+                margin: { left: margin, right: margin },
+                headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: "bold" },
+                alternateRowStyles: { fillColor: [248, 249, 251] },
+                styles: { fontSize: 9, cellPadding: 4 },
+                columnStyles: {
+                    1: { halign: "right" },
+                    2: { halign: "right" },
+                    3: { halign: "right" }
+                }
+            });
+
+            let finalY = doc.lastAutoTable.finalY + 6;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text(`Total Amount: NPR ${(sale.salesAmount || 0).toLocaleString()}`, pageWidth - margin, finalY, { align: "right" });
+            finalY += 12;
+
+            // Footer
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(120);
+            doc.text("Thank you for your business!", pageWidth / 2, finalY, { align: "center" });
+            doc.text("This is a Gearix VehicleIMS Invoice", pageWidth / 2, finalY + 5, { align: "center" });
+
+            // Page numbers
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(160);
+                doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
+            }
+
+            doc.save(`invoice_${sale.invoiceNumber || sale.salesId}.pdf`);
+        } catch (err) {
+            console.error("PDF download failed:", err);
+            alert("Could not generate PDF. Please try again.");
+        }
+    };
+
     const printInvoice = (sale) => {
         const printWindow = window.open('', '_blank');
-        
         const itemsHtml = sale.items?.map(item => `
             <tr>
                 <td style="padding: 10px;">${item.partName || "Item"}</td>
@@ -98,7 +190,6 @@ function HistoryPage() {
                 <td style="padding: 10px; text-align: right;">NPR ${((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString()}</td>
             </tr>
         `).join('') || '<tr><td colspan="4" style="padding: 10px; text-align: center;">No items</td></tr>';
-        
         const htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -134,7 +225,6 @@ function HistoryPage() {
                         <p class="company">Phone: +977-9800000000</p>
                         <h2 class="title">TAX INVOICE</h2>
                     </div>
-                    
                     <div class="info">
                         <div>
                             <p><strong>Invoice Number:</strong> ${sale.invoiceNumber}</p>
@@ -145,12 +235,10 @@ function HistoryPage() {
                             <p><strong>Payment Method:</strong> ${sale.paymentMethod || "Cash"}</p>
                         </div>
                     </div>
-                    
                     <div class="bill-to">
                         <h3>Bill To:</h3>
                         <p><strong>Name:</strong> Customer</p>
                     </div>
-                    
                     <table>
                         <thead>
                             <tr>
@@ -168,19 +256,15 @@ function HistoryPage() {
                             </tr>
                         </tbody>
                     </table>
-                    
                     <div class="footer">
                         <p>Thank you for your business!</p>
-                        <p>This is a computer generated invoice - no signature required.</p>
+                        <p>This is a Gearix VehicleIMS Invoice.</p>
                     </div>
                 </div>
-                <script>
-                    window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); }
-                </script>
+                <script>window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); }</script>
             </body>
             </html>
         `;
-        
         printWindow.document.write(htmlContent);
         printWindow.document.close();
     };
@@ -204,12 +288,7 @@ function HistoryPage() {
                 <PageHeader title="Purchase History" description="View all your past purchases and invoices" />
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
                     <p className="text-red-600">{error}</p>
-                    <button 
-                        onClick={() => fetchPurchaseHistory()} 
-                        className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:opacity-90"
-                    >
-                        Try Again
-                    </button>
+                    <button onClick={() => fetchPurchaseHistory()} className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:opacity-90">Try Again</button>
                 </div>
             </CustomerLayout>
         );
@@ -217,12 +296,7 @@ function HistoryPage() {
 
     return (
         <CustomerLayout>
-            <PageHeader 
-                title="Purchase History" 
-                description="All your past invoices and purchases."
-            />
-
-            {/* Stats Cards */}
+            <PageHeader title="Purchase History" description="All your past invoices and purchases." />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="stat-card">
                     <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Orders</div>
@@ -238,7 +312,6 @@ function HistoryPage() {
                 </div>
             </div>
 
-            {/* Orders Table */}
             {sales.length === 0 ? (
                 <div className="bg-card border border-border rounded-lg p-12 text-center">
                     <p className="text-muted-foreground">No purchase history found.</p>
@@ -260,18 +333,10 @@ function HistoryPage() {
                             <tbody>
                                 {sales.map((sale) => (
                                     <tr key={sale.salesId} className="border-t border-border hover:bg-surface/50 transition-colors">
-                                        <td className="px-6 py-3 font-mono text-sm font-medium">
-                                            {sale.invoiceNumber || `INV-${sale.salesId}`}
-                                        </td>
-                                        <td className="px-6 py-3 text-muted-foreground">
-                                            {formatDate(sale.salesDate)}
-                                        </td>
-                                        <td className="px-6 py-3 text-right">
-                                            {sale.items?.length || sale.itemCount || "-"}
-                                        </td>
-                                        <td className="px-6 py-3 text-right font-semibold">
-                                            NPR {(sale.salesAmount || 0).toLocaleString()}
-                                        </td>
+                                        <td className="px-6 py-3 font-mono text-sm font-medium">{sale.invoiceNumber || `INV-${sale.salesId}`}</td>
+                                        <td className="px-6 py-3 text-muted-foreground">{formatDate(sale.salesDate)}</td>
+                                        <td className="px-6 py-3 text-right">{sale.items?.length || sale.itemCount || "-"}</td>
+                                        <td className="px-6 py-3 text-right font-semibold">NPR {(sale.salesAmount || 0).toLocaleString()}</td>
                                         <td className="px-6 py-3 text-center">
                                             <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(sale.paymentStatus)}`}>
                                                 {formatStatus(sale.paymentStatus)}
@@ -279,18 +344,13 @@ function HistoryPage() {
                                         </td>
                                         <td className="px-6 py-3 text-right">
                                             <div className="flex items-center justify-end gap-1">
-                                                <button 
-                                                    onClick={() => fetchOrderDetails(sale.salesId)}
-                                                    className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-surface transition-colors"
-                                                    title="View Details"
-                                                >
+                                                <button onClick={() => fetchOrderDetails(sale.salesId)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-surface transition-colors" title="View Details">
                                                     <Eye className="h-4 w-4" />
                                                 </button>
-                                                <button 
-                                                    onClick={() => printInvoice(sale)}
-                                                    className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-surface transition-colors"
-                                                    title="Print Invoice"
-                                                >
+                                                <button onClick={() => downloadInvoicePDF(sale)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-surface transition-colors" title="Download PDF">
+                                                    <Download className="h-4 w-4" />
+                                                </button>
+                                                <button onClick={() => printInvoice(sale)} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-surface transition-colors" title="Print Invoice">
                                                     <Printer className="h-4 w-4" />
                                                 </button>
                                             </div>
@@ -303,7 +363,7 @@ function HistoryPage() {
                 </div>
             )}
 
-            {/* Order Details Modal */}
+            {/* Order Details Modal (unchanged) */}
             {viewingOrder && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setViewingOrder(null)}>
                     <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
@@ -313,34 +373,16 @@ function HistoryPage() {
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-2 gap-4 mb-6">
-                                <div>
-                                    <div className="text-xs text-muted-foreground">Invoice Number</div>
-                                    <div className="font-medium">{viewingOrder.invoiceNumber}</div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">Date</div>
-                                    <div className="font-medium">{formatDate(viewingOrder.salesDate)}</div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">Payment Status</div>
-                                    <div className="font-medium">{formatStatus(viewingOrder.paymentStatus)}</div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">Payment Method</div>
-                                    <div className="font-medium">{viewingOrder.paymentMethod || "N/A"}</div>
-                                </div>
+                                <div><div className="text-xs text-muted-foreground">Invoice Number</div><div className="font-medium">{viewingOrder.invoiceNumber}</div></div>
+                                <div><div className="text-xs text-muted-foreground">Date</div><div className="font-medium">{formatDate(viewingOrder.salesDate)}</div></div>
+                                <div><div className="text-xs text-muted-foreground">Payment Status</div><div className="font-medium">{formatStatus(viewingOrder.paymentStatus)}</div></div>
+                                <div><div className="text-xs text-muted-foreground">Payment Method</div><div className="font-medium">{viewingOrder.paymentMethod || "N/A"}</div></div>
                             </div>
-                            
                             <div className="border-t border-border pt-4">
                                 <h4 className="font-medium mb-3">Items</h4>
                                 <table className="w-full text-sm">
                                     <thead className="bg-surface">
-                                        <tr>
-                                            <th className="text-left px-3 py-2">Item</th>
-                                            <th className="text-right px-3 py-2">Qty</th>
-                                            <th className="text-right px-3 py-2">Price</th>
-                                            <th className="text-right px-3 py-2">Total</th>
-                                        </tr>
+                                        <tr><th className="text-left px-3 py-2">Item</th><th className="text-right px-3 py-2">Qty</th><th className="text-right px-3 py-2">Price</th><th className="text-right px-3 py-2">Total</th></tr>
                                     </thead>
                                     <tbody>
                                         {viewingOrder.items?.map((item, idx) => (
@@ -353,10 +395,7 @@ function HistoryPage() {
                                         ))}
                                     </tbody>
                                     <tfoot className="border-t-2 border-border bg-surface/50">
-                                        <tr>
-                                            <td colSpan={3} className="px-3 py-2 text-right font-semibold">Total</td>
-                                            <td className="px-3 py-2 text-right font-bold">रु {viewingOrder.salesAmount?.toLocaleString()}</td>
-                                        </tr>
+                                        <tr><td colSpan={3} className="px-3 py-2 text-right font-semibold">Total</td><td className="px-3 py-2 text-right font-bold">रु {viewingOrder.salesAmount?.toLocaleString()}</td></tr>
                                     </tfoot>
                                 </table>
                             </div>
