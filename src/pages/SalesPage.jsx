@@ -303,6 +303,7 @@ function SalesPage() {
                             </thead>
                             <tbody>
                                 ${invoice.items.map(item => `
+                                ${invoice.items.map(item => `
                                     <tr>
                                         <td>${item.partName}</td>
                                         <td>${item.quantity}</td>
@@ -310,10 +311,12 @@ function SalesPage() {
                                         <td>Rs. ${item.lineTotal.toLocaleString()}</td>
                                     </tr>
                                 `).join('')}
+                                `).join('')}
                             </tbody>
                         </table>
                         <div class="total">
                             <p>Subtotal: Rs. ${invoice.subtotal?.toLocaleString() || (invoice.partsTotal + invoice.serviceCharge).toLocaleString()}</p>
+                            <p>Discount (10%): Rs. ${invoice.discount?.toLocaleString() || 0}</p>
                             <p>Discount (10%): Rs. ${invoice.discount?.toLocaleString() || 0}</p>
                             <p>Total: Rs. ${invoice.total?.toLocaleString() || invoice.salesAmount?.toLocaleString()}</p>
                         </div>
@@ -648,26 +651,37 @@ function Row({ label, value, muted, bold }) {
             <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
         </div>
     );
+    return (
+        <div className="flex justify-between">
+            <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
+            <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
+        </div>
+    );
 }
 
 // API endpoint functions
 function getCustomers() {
     return apiFetch("/customers");
+    return apiFetch("/customers");
 }
 
 function getParts() {
+    return apiFetch("/parts");
     return apiFetch("/parts");
 }
 
 function getServices() {
     return apiFetch("/services");
+    return apiFetch("/services");
 }
 
 function getVehicles(customerId) {
     return apiFetch(`/vehicle/customer/${customerId}`);
+    return apiFetch(`/vehicle/customer/${customerId}`);
 }
 
 function getBookingsByCustomer(customerId) {
+    return apiFetch(`/bookings/customer/${customerId}`);
     return apiFetch(`/bookings/customer/${customerId}`);
 }
 
@@ -681,6 +695,10 @@ function createSale(data) {
         method: "POST",
         body: JSON.stringify(data),
     });
+    return apiFetch("/sales", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
 }
 
 function sendInvoiceEmail(salesId, recipientEmail) {
@@ -688,9 +706,14 @@ function sendInvoiceEmail(salesId, recipientEmail) {
         method: "POST",
         body: JSON.stringify({ salesId, recipientEmail }),
     });
+    return apiFetch(`/sales/${salesId}/send-invoice`, {
+        method: "POST",
+        body: JSON.stringify({ salesId, recipientEmail }),
+    });
 }
 
 function getInvoice(salesId) {
+    return apiFetch(`/sales/${salesId}/invoice`);
     return apiFetch(`/sales/${salesId}/invoice`);
 }
 
