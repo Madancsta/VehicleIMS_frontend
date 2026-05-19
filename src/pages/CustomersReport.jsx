@@ -294,15 +294,10 @@ function ReportCard({ title, icon: Icon, accent, children }) {
         <div
           className={`h-8 w-8 rounded-md flex items-center justify-center ${accent}`}
         >
-        <div
-          className={`h-8 w-8 rounded-md flex items-center justify-center ${accent}`}
-        >
           <Icon className="h-4 w-4" />
         </div>
-
         <div className="font-display font-semibold">{title}</div>
       </div>
-
       <div>{children}</div>
     </div>
   );

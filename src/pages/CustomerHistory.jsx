@@ -95,10 +95,7 @@ function CustomerHistory() {
           title="Customer History"
           description="Detailed view of customer profile, vehicles and purchases."
         />
-
-        <div className="text-muted-foreground">
-          Loading customers...
-        </div>
+        <div className="text-muted-foreground">Loading customers...</div>
       </div>
     );
   }
@@ -110,7 +107,6 @@ function CustomerHistory() {
           title="Customer History"
           description="Detailed view of customer profile, vehicles and purchases."
         />
-
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-600">
           {error}
           {error.includes("Unauthorized") && (
@@ -168,12 +164,10 @@ function CustomerHistory() {
                     <div className="text-sm font-medium">
                       {customer.firstName} {customer.lastName}
                     </div>
-
                     <div className="text-xs text-muted-foreground font-mono">
                       C-{customer.customerId}
                     </div>
                   </div>
-
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </button>
               ))
@@ -196,7 +190,6 @@ function CustomerHistory() {
                     <div className="font-display text-2xl font-bold">
                       {c.firstName} {c.lastName}
                     </div>
-
                     <div className="text-xs text-muted-foreground font-mono mt-1">
                       C-{c.customerId}
                     </div>
@@ -214,12 +207,10 @@ function CustomerHistory() {
                     <Phone className="h-4 w-4" />
                     {c.phoneNumber || "N/A"}
                   </div>
-
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="h-4 w-4" />
                     {c.email || "N/A"}
                   </div>
-
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="h-4 w-4" />
                     {c.address || "N/A"}
@@ -231,7 +222,6 @@ function CustomerHistory() {
                     label="Total Spent"
                     value={`Rs. ${(summary?.totalSpent || c.totalSpent || 0).toLocaleString()}`}
                   />
-
                   <Stat
                     label="Outstanding Credit"
                     value={`Rs. ${(c.creditBalance || 0).toLocaleString()}`}
@@ -260,7 +250,6 @@ function CustomerHistory() {
                       <div className="font-medium">
                         {vehicle.brand} {vehicle.model} ({vehicle.year})
                       </div>
-
                       <div className="text-xs text-muted-foreground font-mono mt-1">
                         {vehicle.vehicleNumber} · {vehicle.color}
                       </div>
@@ -374,7 +363,6 @@ function Stat({ label, value, accent }) {
       <div className="text-xs uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
-
       <div
         className={`font-display text-xl font-bold mt-1 ${
           accent ? "text-destructive" : ""
@@ -384,63 +372,6 @@ function Stat({ label, value, accent }) {
       </div>
     </div>
   );
-}
-
-async function apiFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: getAuthHeaders(options.headers),
-  });
-
-  return readApiResponse(res);
-}
-
-function getAuthHeaders(headers = {}) {
-  const token =
-    localStorage.getItem("token") ||
-    localStorage.getItem("accessToken");
-
-  return {
-    "Content-Type": "application/json",
-    ...headers,
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
-async function readApiResponse(res) {
-  const text = await res.text();
-
-  if (!res.ok) {
-    let errorMessage = text || "Request failed.";
-
-    try {
-      const parsed = JSON.parse(text);
-
-      errorMessage =
-        parsed.message ||
-        parsed.Message ||
-        parsed.title ||
-        errorMessage;
-    } catch {}
-
-    throw new Error(errorMessage);
-  }
-
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
-}
-
-function getCustomers() {
-  return apiFetch("/Customer");
-}
-
-function getCustomerById(id) {
-  return apiFetch(`/Customer/${id}`);
 }
 
 export default CustomerHistory;
