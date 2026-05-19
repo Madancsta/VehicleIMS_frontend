@@ -197,6 +197,18 @@ function BookingRequestReviewPage() {
     loadReviewableSales();
   }, [loadServices, loadCustomerBookings, loadParts, loadCustomerRequests, loadReviewableSales]);
 
+  useEffect(() => {
+    if (!isSuccessMessage(message)) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setMessage((currentMessage) => (currentMessage === message ? "" : currentMessage));
+    }, 3000);
+
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
   function handleBookingChange(e) {
     setBookingForm({
       ...bookingForm,
@@ -357,7 +369,7 @@ function BookingRequestReviewPage() {
       />
 
       {message && (
-        <div className="mb-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground shadow-sm">
+        <div className={`mb-6 rounded-lg border p-4 text-sm shadow-sm ${messageClassName(message)}`}>
           {message}
         </div>
       )}
@@ -1230,6 +1242,16 @@ function statusBadgeClass(status) {
   }
 
   return "bg-warning/20 text-warning-foreground";
+}
+
+function isSuccessMessage(message) {
+  return message.toLowerCase().includes("successfully");
+}
+
+function messageClassName(message) {
+  return isSuccessMessage(message)
+    ? "border-green-500 bg-green-50 text-green-700"
+    : "border-red-500 bg-red-50 text-red-700";
 }
 
 export default BookingRequestReviewPage;
