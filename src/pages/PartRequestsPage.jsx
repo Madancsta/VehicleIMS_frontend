@@ -274,17 +274,17 @@ function PartRequestsPage() {
                         <div className="flex items-center justify-end">
                           <span
                             className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full ${
-                              status === "Approved"
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
-                                : "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                              status === "Rejected"
+                                ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                                : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
                             }`}
                           >
-                            {status === "Approved" ? (
-                              <CheckCircle className="h-3 w-3" />
-                            ) : (
+                            {status === "Rejected" ? (
                               <XCircle className="h-3 w-3" />
+                            ) : (
+                              <CheckCircle className="h-3 w-3" />
                             )}
-                            {status === "Approved" ? "Approved" : "Rejected"}
+                            {status}
                           </span>
                         </div>
                       )}
@@ -367,7 +367,7 @@ function StatCard({ label, value, icon: Icon, tone }) {
 
 function getRequestStatusLabel(statusId) {
   const status = Number(statusId);
-  if (status === 2) return "Approved";
+  if (status === 2 || status === 4) return "Approved";
   if (status === 3) return "Rejected";
   return "Pending";
 }

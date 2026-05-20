@@ -776,6 +776,7 @@ function BookingRequestReviewPage() {
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-medium ${
                             Number(request.status) === 2
+                              || Number(request.status) === 4
                               ? "bg-success/15 text-success"
                               : Number(request.status) === 3
                                 ? "bg-destructive/15 text-destructive"
@@ -1323,6 +1324,7 @@ function formatRequestStatus(value) {
     1: "Pending",
     2: "Approved",
     3: "Rejected",
+    4: "Approved",
   };
 
   if (value === "" || value === null || value === undefined) {
