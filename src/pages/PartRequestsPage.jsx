@@ -1,13 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle, Clock, PackageSearch, RefreshCw, Search, XCircle } from "lucide-react";
+import {
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  PackageSearch,
+  RefreshCw,
+  Search,
+  XCircle,
+} from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { apiFetch } from "../api/clientApi";
+
+const ITEMS_PER_PAGE = 5;
 
 function PartRequestsPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
   const [actioningId, setActioningId] = useState(null); // Renamed from approvingId to handle both actions
 
   async function loadRequests() {
@@ -75,6 +87,28 @@ function PartRequestsPage() {
       return matchesSearch && matchesStatus;
     });
   }, [requests, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / ITEMS_PER_PAGE));
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage((page) => page + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage((page) => page - 1);
+  };
 
   const pendingCount = requests.filter((r) => Number(r.requestStatusId) === 1).length;
   const approvedCount = requests.filter((r) => Number(r.requestStatusId) === 2).length;
@@ -145,7 +179,7 @@ function PartRequestsPage() {
             </thead>
 
             <tbody className="divide-y divide-border">
-              {filteredRequests.map((request) => {
+              {paginatedRequests.map((request) => {
                 const status = getRequestStatusLabel(request.requestStatusId);
                 const isPending = Number(request.requestStatusId) === 1;
                 const isActioning = actioningId === request.requestId;
@@ -269,6 +303,36 @@ function PartRequestsPage() {
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-border flex items-center justify-center gap-4">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${
+                currentPage === 1
+                  ? "text-muted-foreground cursor-not-allowed opacity-50"
+                  : "hover:bg-surface text-foreground"
+              }`}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${
+                currentPage === totalPages
+                  ? "text-muted-foreground cursor-not-allowed opacity-50"
+                  : "hover:bg-surface text-foreground"
+              }`}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

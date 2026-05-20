@@ -9,14 +9,10 @@ import {
   Package,
   LayoutDashboard,
   BarChart3,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { partsService } from "../services/partsService";
 import { categoryService } from "../services/categoryService";
-
-const ITEMS_PER_PAGE = 5;
 
 function PartsPage() {
   const [parts, setParts] = useState([]);
@@ -27,7 +23,6 @@ function PartsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchAll();
@@ -42,7 +37,6 @@ function PartsPage() {
       ]);
       setParts(partsData);
       setCategories(catsData);
-      setCurrentPage(1);
     } catch (err) {
       console.error(err);
     } finally {
@@ -65,24 +59,6 @@ function PartsPage() {
     const matchCat = categoryFilter === "All" || p.categoryName === categoryFilter;
     return matchSearch && matchCat;
   });
-
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginatedParts = filtered.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, categoryFilter]);
-
-  const goToNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
-  };
-
-  const goToPrevPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
-  };
 
   if (loading) return <div className="p-8 text-center">Loading parts...</div>;
 
@@ -174,7 +150,7 @@ function PartsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {paginatedParts.map((p) => {
+              {filtered.map((p) => {
                 const low = p.stockQuantity < 10;
                 return (
                   <tr key={p.partId} className="hover:bg-surface/50 transition-colors">
@@ -220,36 +196,6 @@ function PartsPage() {
             </tbody>
           </table>
         </div>
-
-        {totalPages > 1 && (
-          <div className="p-4 border-t border-border flex items-center justify-center gap-4">
-            <button
-              onClick={goToPrevPage}
-              disabled={currentPage === 1}
-              className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${
-                currentPage === 1
-                  ? "text-muted-foreground cursor-not-allowed opacity-50"
-                  : "hover:bg-surface text-foreground"
-              }`}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={goToNextPage}
-              disabled={currentPage === totalPages}
-              className={`h-8 w-8 rounded-md flex items-center justify-center transition-colors ${
-                currentPage === totalPages
-                  ? "text-muted-foreground cursor-not-allowed opacity-50"
-                  : "hover:bg-surface text-foreground"
-              }`}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
       </div>
 
       <PartFormModal
