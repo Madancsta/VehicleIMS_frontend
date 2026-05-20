@@ -21,7 +21,6 @@ function SalesPage() {
     const [pageLoading, setPageLoading] = useState(true);
     const [selectedBookingDetails, setSelectedBookingDetails] = useState(null);
     
-    // Fetch data on mount
     useEffect(() => {
         const loadInitialData = async () => {
             setPageLoading(true);
@@ -36,7 +35,6 @@ function SalesPage() {
         loadInitialData();
     }, []);
     
-    // Load bookings and vehicles when customer changes
     useEffect(() => {
         if (selectedCustomerId) {
             loadBookingsByCustomer(selectedCustomerId);
@@ -47,7 +45,6 @@ function SalesPage() {
         }
     }, [selectedCustomerId]);
     
-    // Load booking details when a booking is selected
     useEffect(() => {
         if (selectedBookingId) {
             loadBookingDetails(selectedBookingId);
@@ -126,15 +123,12 @@ function SalesPage() {
         }
     }, []);
     
-    // NEW: Load booking details including parts and service
     const loadBookingDetails = useCallback(async (bookingId) => {
         try {
             const bookingDetails = await getBookingDetails(bookingId);
             setSelectedBookingDetails(bookingDetails);
             
-            // Auto-set service type from booking
             if (bookingDetails.serviceType) {
-                // Find matching service ID based on service type
                 const matchingService = services.find(s => 
                     s.serviceType?.toLowerCase() === bookingDetails.serviceType?.toLowerCase()
                 );
@@ -143,16 +137,13 @@ function SalesPage() {
                 }
             }
             
-            // Auto-set vehicle from booking
             if (bookingDetails.vehicleId) {
                 setSelectedVehicleId(bookingDetails.vehicleId.toString());
             }
             
-            // Auto-add parts from booking's request parts
             if (bookingDetails.parts && bookingDetails.parts.length > 0) {
                 const bookingParts = [];
                 for (const requestPart of bookingDetails.parts) {
-                    // Find the part in the parts list
                     const part = parts.find(p => p.partId === requestPart.partId);
                     if (part) {
                         bookingParts.push({
@@ -164,7 +155,6 @@ function SalesPage() {
                     }
                 }
                 
-                // Merge with existing items (avoid duplicates)
                 const updatedItems = [...items];
                 for (const bookingPart of bookingParts) {
                     const existingIndex = updatedItems.findIndex(item => item.partId === bookingPart.partId);
@@ -176,7 +166,7 @@ function SalesPage() {
                 }
                 setItems(updatedItems);
                 
-                setMessage(`Loaded parts from booking #${bookingId}`);
+                setMessage(`Loaded parts from booking ${bookingId}`);
                 setTimeout(() => setMessage(""), 3000);
             }
         } catch (error) {
@@ -187,7 +177,6 @@ function SalesPage() {
     
     const partsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     
-    // Get selected service details
     const selectedService = services.find(s => s.serviceId === parseInt(selectedServiceId));
     const serviceCharge = selectedService?.serviceCharge || 0;
     
@@ -222,13 +211,10 @@ function SalesPage() {
                 paymentMethod: paymentMethod.toLowerCase()
             };
             
-            console.log("Sending payload:", payload);
-            
             const result = await createSale(payload);
             setLastSale(result);
-            setMessage(`Sale completed successfully! Invoice #${result.invoiceNumber}`);
+            setMessage(`Sale completed successfully. Invoice ${result.invoiceNumber}`);
             
-            // Reset form after successful sale
             setItems([]);
             setSelectedServiceId("");
             setSelectedVehicleId("");
@@ -238,7 +224,7 @@ function SalesPage() {
             
         } catch (err) {
             console.error("Sale error:", err);
-            setMessage(err.message || "Unable to create sale.");
+            setMessage(err.message || "Unable to create sale. Please check stock levels.");
         } finally {
             setLoading(false);
         }
@@ -276,7 +262,7 @@ function SalesPage() {
             printWindow.document.write(`
                 <html>
                     <head>
-                        <title>Invoice #${invoice.invoiceNumber}</title>
+                        <title>Invoice ${invoice.invoiceNumber}</title>
                         <style>
                             body { font-family: Arial, sans-serif; padding: 40px; }
                             .header { text-align: center; margin-bottom: 30px; }
@@ -303,7 +289,6 @@ function SalesPage() {
                             </thead>
                             <tbody>
                                 ${invoice.items.map(item => `
-                                ${invoice.items.map(item => `
                                     <tr>
                                         <td>${item.partName}</td>
                                         <td>${item.quantity}</td>
@@ -311,13 +296,11 @@ function SalesPage() {
                                         <td>Rs. ${item.lineTotal.toLocaleString()}</td>
                                     </tr>
                                 `).join('')}
-                                `).join('')}
                             </tbody>
                         </table>
                         <div class="total">
-                            <p>Subtotal: Rs. ${invoice.subtotal?.toLocaleString() || (invoice.partsTotal + invoice.serviceCharge).toLocaleString()}</p>
-                            <p>Discount (10%): Rs. ${invoice.discount?.toLocaleString() || 0}</p>
-                            <p>Discount (10%): Rs. ${invoice.discount?.toLocaleString() || 0}</p>
+                            <p>Subtotal: Rs. ${(invoice.partsTotal + invoice.serviceCharge).toLocaleString()}</p>
+                            <p>Discount: Rs. ${invoice.discount?.toLocaleString() || 0}</p>
                             <p>Total: Rs. ${invoice.total?.toLocaleString() || invoice.salesAmount?.toLocaleString()}</p>
                         </div>
                     </body>
@@ -393,7 +376,6 @@ function SalesPage() {
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="col-span-2 space-y-4">
-                    {/* Customer Information */}
                     <div className="bg-card border border-border rounded-lg p-6">
                         <div className="font-display font-semibold mb-4">Customer Information</div>
                         <select 
@@ -413,7 +395,6 @@ function SalesPage() {
                         )}
                     </div>
                     
-                    {/* Service Selection */}
                     <div className="bg-card border border-border rounded-lg p-6">
                         <div className="font-display font-semibold mb-4">Service Selection</div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -451,7 +432,6 @@ function SalesPage() {
                         </div>
                     </div>
                     
-                    {/* Booking Selection (if applicable) */}
                     {bookings.length > 0 && (
                         <div className="bg-card border border-border rounded-lg p-6">
                             <div className="font-display font-semibold mb-4">Booking Reference</div>
@@ -468,7 +448,7 @@ function SalesPage() {
                                     })
                                     .map(b => (
                                         <option key={b.bookingId} value={b.bookingId}>
-                                            Booking #{b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
+                                            Booking {b.bookingId} - {new Date(b.bookingDate).toLocaleDateString()} - {b.bookingStatus || b.status}
                                         </option>
                                     ))}
                             </select>
@@ -488,7 +468,6 @@ function SalesPage() {
                         </div>
                     )}
                     
-                    {/* Parts & Items */}
                     <div className="bg-card border border-border rounded-lg overflow-hidden">
                         <div className="p-6 border-b border-border flex items-center justify-between">
                             <div className="font-display font-semibold">Parts & Items</div>
@@ -549,7 +528,6 @@ function SalesPage() {
                         </div>
                     </div>
                     
-                    {/* Quick add part */}
                     <div className="bg-card border border-border rounded-lg p-6">
                         <div className="font-display font-semibold mb-4">Quick Add Parts</div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -575,21 +553,34 @@ function SalesPage() {
                     </div>
                 </div>
                 
-                {/* Invoice Summary */}
                 <div className="bg-card border border-border rounded-lg p-6 h-fit sticky top-8">
                     <div className="font-display font-semibold mb-4">Invoice Summary</div>
                     <div className="space-y-2 text-sm">
-                        <Row label="Parts Total" value={`Rs. ${partsTotal.toLocaleString()}`}/>
+                        <div className="flex justify-between">
+                            <span>Parts Total</span>
+                            <span className="font-mono">Rs. {partsTotal.toLocaleString()}</span>
+                        </div>
                         {serviceCharge > 0 && (
-                            <Row label={`Service Charge (${selectedService?.serviceType})`} 
-                                 value={`Rs. ${serviceCharge.toLocaleString()}`}/>
+                            <div className="flex justify-between">
+                                <span>Service Charge ({selectedService?.serviceType})</span>
+                                <span className="font-mono">Rs. {serviceCharge.toLocaleString()}</span>
+                            </div>
                         )}
-                        <Row label="Subtotal" value={`Rs. ${subtotal.toLocaleString()}`}/>
+                        <div className="flex justify-between">
+                            <span>Subtotal</span>
+                            <span className="font-mono">Rs. {subtotal.toLocaleString()}</span>
+                        </div>
                         {subtotal > 5000 && (
-                            <Row label="Loyalty Discount (10%)" value={`- Rs. ${discount.toLocaleString()}`} muted/>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Loyalty Discount (10%)</span>
+                                <span className="font-mono text-muted-foreground">- Rs. {discount.toLocaleString()}</span>
+                            </div>
                         )}
                         <div className="border-t border-border pt-3 mt-3">
-                            <Row label="Total Amount" value={`Rs. ${total.toLocaleString()}`} bold/>
+                            <div className="flex justify-between">
+                                <span className="font-bold">Total Amount</span>
+                                <span className="font-mono font-bold text-base">Rs. {total.toLocaleString()}</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -644,57 +635,31 @@ function SalesPage() {
     );
 }
 
-function Row({ label, value, muted, bold }) {
-    return (
-        <div className="flex justify-between">
-            <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
-            <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
-        </div>
-    );
-    return (
-        <div className="flex justify-between">
-            <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
-            <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
-        </div>
-    );
-}
-
-// API endpoint functions
 function getCustomers() {
-    return apiFetch("/customers");
     return apiFetch("/customers");
 }
 
 function getParts() {
     return apiFetch("/parts");
-    return apiFetch("/parts");
 }
 
 function getServices() {
-    return apiFetch("/services");
     return apiFetch("/services");
 }
 
 function getVehicles(customerId) {
     return apiFetch(`/vehicle/customer/${customerId}`);
-    return apiFetch(`/vehicle/customer/${customerId}`);
 }
 
 function getBookingsByCustomer(customerId) {
     return apiFetch(`/bookings/customer/${customerId}`);
-    return apiFetch(`/bookings/customer/${customerId}`);
 }
 
-// NEW: Get booking details including parts
 function getBookingDetails(bookingId) {
     return apiFetch(`/bookings/${bookingId}/details`);
 }
 
 function createSale(data) {
-    return apiFetch("/sales", {
-        method: "POST",
-        body: JSON.stringify(data),
-    });
     return apiFetch("/sales", {
         method: "POST",
         body: JSON.stringify(data),
@@ -706,14 +671,9 @@ function sendInvoiceEmail(salesId, recipientEmail) {
         method: "POST",
         body: JSON.stringify({ salesId, recipientEmail }),
     });
-    return apiFetch(`/sales/${salesId}/send-invoice`, {
-        method: "POST",
-        body: JSON.stringify({ salesId, recipientEmail }),
-    });
 }
 
 function getInvoice(salesId) {
-    return apiFetch(`/sales/${salesId}/invoice`);
     return apiFetch(`/sales/${salesId}/invoice`);
 }
 
