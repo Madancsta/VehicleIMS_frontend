@@ -212,9 +212,21 @@ function SalesPage() {
             };
             
             const result = await createSale(payload);
-            setLastSale(result);
-            setMessage(`Sale completed successfully. Invoice ${result.invoiceNumber}`);
             
+            // Get customer email before resetting the form
+            const selectedCustomer = customers.find(c => c.customerId === parseInt(selectedCustomerId));
+            const customerEmail = selectedCustomer?.email || "";
+            
+            setLastSale({
+                salesId: result.salesId,
+                invoiceNumber: result.invoiceNumber,
+                salesAmount: result.salesAmount,
+                customerEmail: customerEmail
+            });
+            
+            setMessage(`Sale completed successfully! Invoice #${result.invoiceNumber}`);
+            
+            // Reset form for next sale
             setItems([]);
             setSelectedServiceId("");
             setSelectedVehicleId("");
@@ -235,16 +247,14 @@ function SalesPage() {
             alert("Please complete a sale first before sending invoice.");
             return;
         }
-        
-        const customer = customers.find(c => c.customerId === parseInt(selectedCustomerId));
-        if (!customer?.email) {
-            alert("Customer does not have an email address.");
+        if (!lastSale?.customerEmail) {
+            alert("Customer email is not available for this sale.");
             return;
         }
         
         try {
-            await sendInvoiceEmail(lastSale.salesId, customer.email);
-            alert(`Invoice sent successfully to ${customer.email}`);
+            await sendInvoiceEmail(lastSale.salesId, lastSale.customerEmail);
+            alert(`Invoice sent successfully to ${lastSale.customerEmail}`);
         } catch (err) {
             alert(err.message || "Failed to send invoice email.");
         }
@@ -271,6 +281,7 @@ function SalesPage() {
                             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
                             th { background-color: #f2f2f2; }
                             .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 20px; }
+                            .section-label { background-color: #f9f9f9; font-weight: bold; color: #555; }
                         </style>
                     </head>
                     <body>
@@ -281,26 +292,42 @@ function SalesPage() {
                         <div class="invoice-details">
                             <p><strong>Date:</strong> ${new Date(invoice.salesDate).toLocaleDateString()}</p>
                             <p><strong>Customer:</strong> ${invoice.customerName}</p>
+                            ${invoice.vehicleInfo ? `<p><strong>Vehicle:</strong> ${invoice.vehicleInfo}</p>` : ''}
                             <p><strong>Payment Method:</strong> ${invoice.paymentMethod}</p>
+                            <p><strong>Payment Status:</strong> ${invoice.paymentStatus}</p>
                         </div>
                         <table>
                             <thead>
                                 <tr><th>Item</th><th>Quantity</th><th>Unit Price</th><th>Total</th></tr>
                             </thead>
                             <tbody>
-                                ${invoice.items.map(item => `
+                                ${invoice.items.length > 0 ? `
+                                    <tr><td colspan="4" class="section-label">Parts</td></tr>
+                                    ${invoice.items.map(item => `
+                                        <tr>
+                                            <td>${item.partName}</td>
+                                            <td>${item.quantity}</td>
+                                            <td>Rs. ${item.unitPrice.toLocaleString()}</td>
+                                            <td>Rs. ${item.lineTotal.toLocaleString()}</td>
+                                        </tr>
+                                    `).join('')}
+                                ` : ''}
+                                ${invoice.serviceType ? `
+                                    <tr><td colspan="4" class="section-label">Service</td></tr>
                                     <tr>
-                                        <td>${item.partName}</td>
-                                        <td>${item.quantity}</td>
-                                        <td>Rs. ${item.unitPrice.toLocaleString()}</td>
-                                        <td>Rs. ${item.lineTotal.toLocaleString()}</td>
+                                        <td>${invoice.serviceType} ${invoice.vehicleType ? `(${invoice.vehicleType})` : ''}</td>
+                                        <td>1</td>
+                                        <td>Rs. ${invoice.serviceCharge.toLocaleString()}</td>
+                                        <td>Rs. ${invoice.serviceCharge.toLocaleString()}</td>
                                     </tr>
-                                `).join('')}
+                                ` : ''}
                             </tbody>
                         </table>
                         <div class="total">
-                            <p>Subtotal: Rs. ${(invoice.partsTotal + invoice.serviceCharge).toLocaleString()}</p>
-                            <p>Discount: Rs. ${invoice.discount?.toLocaleString() || 0}</p>
+                            ${invoice.items.length > 0 ? `<p>Parts Total: Rs. ${invoice.partsTotal.toLocaleString()}</p>` : ''}
+                            ${invoice.serviceType ? `<p>Service Charge: Rs. ${invoice.serviceCharge.toLocaleString()}</p>` : ''}
+                            <p>Subtotal: Rs. ${invoice.subtotal?.toLocaleString() || (invoice.partsTotal + invoice.serviceCharge).toLocaleString()}</p>
+                            ${invoice.discount > 0 ? `<p>Discount (10%): - Rs. ${invoice.discount.toLocaleString()}</p>` : ''}
                             <p>Total: Rs. ${invoice.total?.toLocaleString() || invoice.salesAmount?.toLocaleString()}</p>
                         </div>
                     </body>
@@ -627,6 +654,7 @@ function SalesPage() {
                             <div className="font-semibold mb-1">Last Sale Created:</div>
                             <div>Invoice: {lastSale.invoiceNumber}</div>
                             <div>Amount: Rs. {lastSale.salesAmount?.toLocaleString()}</div>
+                            <div>Email: {lastSale.customerEmail || "No email"}</div>
                         </div>
                     )}
                 </div>
@@ -635,6 +663,16 @@ function SalesPage() {
     );
 }
 
+function Row({ label, value, muted, bold }) {
+    return (
+        <div className="flex justify-between">
+            <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
+            <span className={`font-mono ${bold ? "font-bold text-base" : ""}`}>{value}</span>
+        </div>
+    );
+}
+
+// API endpoint functions
 function getCustomers() {
     return apiFetch("/customers");
 }

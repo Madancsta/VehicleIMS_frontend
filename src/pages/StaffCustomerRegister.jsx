@@ -3,7 +3,7 @@ import { useState } from "react";
 import { apiFetch } from '../api/clientApi';
 
 function StaffCustomerRegister() {
-    const [step, setStep] = useState(1); // 1: Customer Info, 2: Vehicle Info
+    const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [messageType, setMessageType] = useState("");
@@ -175,28 +175,29 @@ function StaffCustomerRegister() {
                         <div className="font-display font-semibold mb-4">Personal Information</div>
                         <div className="grid grid-cols-2 gap-5">
                             <Field 
-                                label="First Name *" 
+                                label="First Name" 
                                 placeholder="Enter first name"
                                 value={customerData.firstName}
                                 onChange={(e) => updateCustomerField("firstName", e.target.value)}
                                 required
                             />
                             <Field 
-                                label="Last Name *" 
+                                label="Last Name" 
                                 placeholder="Enter last name"
                                 value={customerData.lastName}
                                 onChange={(e) => updateCustomerField("lastName", e.target.value)}
                                 required
                             />
                             <Field 
-                                label="Username *" 
+                                label="Username" 
                                 placeholder="Enter username"
                                 value={customerData.userName}
                                 onChange={(e) => updateCustomerField("userName", e.target.value)}
+                                 autoComplete="new-username"
                                 required
                             />
                             <Field 
-                                label="Email *" 
+                                label="Email" 
                                 type="email"
                                 placeholder="customer@example.com"
                                 value={customerData.email}
@@ -204,7 +205,7 @@ function StaffCustomerRegister() {
                                 required
                             />
                             <Field 
-                                label="Phone Number *" 
+                                label="Phone Number" 
                                 placeholder="+977-XXXXXXXXXX"
                                 value={customerData.phoneNumber}
                                 onChange={(e) => updateCustomerField("phoneNumber", e.target.value)}
@@ -217,15 +218,16 @@ function StaffCustomerRegister() {
                                 onChange={(e) => updateCustomerField("address", e.target.value)}
                             />
                             <Field 
-                                label="Password *" 
+                                label="Password" 
                                 type="password"
                                 placeholder="Minimum 6 characters"
                                 value={customerData.password}
                                 onChange={(e) => updateCustomerField("password", e.target.value)}
+                                autoComplete="new-password" 
                                 required
                             />
                             <Field 
-                                label="Confirm Password *" 
+                                label="Confirm Password" 
                                 type="password"
                                 placeholder="Re-enter password"
                                 value={customerData.confirmPassword}
