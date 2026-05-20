@@ -26,9 +26,7 @@ function AdminDashboard() {
         try {
             setLoading(true);
             setError("");
-
             const data = await apiFetch("/adminDashboard/data");
-
             setDashboardData(data);
         } catch (err) {
             console.error("Dashboard error:", err);
@@ -41,38 +39,39 @@ function AdminDashboard() {
     useEffect(() => {
         fetchDashboardData();
     }, []);
-    
 
     const { stats, monthlyRevenue, alerts, recentSales } = dashboardData;
-    
-    const maxRev = monthlyRevenue.length > 0 
-        ? Math.max(...monthlyRevenue.map(m => m.revenue))
+
+    const maxRev = monthlyRevenue.length > 0
+        ? Math.max(...monthlyRevenue.map(m => Math.max(m.revenue, m.expenses)))
         : 1;
 
+    const CHART_HEIGHT = 192;
+
     const statCards = [
-        { 
-            label: "Total Revenue", 
-            value: `Rs. ${stats.totalRevenue.toLocaleString()}`, 
-            icon: DollarSign, 
-            change: `${stats.profitMargin.toFixed(1)}% margin` 
+        {
+            label: "Total Revenue",
+            value: `Rs. ${stats.totalRevenue.toLocaleString()}`,
+            icon: DollarSign,
+            change: `${stats.profitMargin.toFixed(1)}% margin`
         },
-        { 
-            label: "Active Customers", 
-            value: stats.activeCustomersCount, 
-            icon: Users, 
-            change: "Active accounts" 
+        {
+            label: "Active Customers",
+            value: stats.activeCustomersCount,
+            icon: Users,
+            change: "Active accounts"
         },
-        { 
-            label: "Parts in stock", 
-            value: stats.totalPartsCount, 
-            icon: Package, 
-            change: `${stats.lowStockCount} low stock` 
+        {
+            label: "Parts in stock",
+            value: stats.totalPartsCount,
+            icon: Package,
+            change: `${stats.lowStockCount} low stock`
         },
-        { 
-            label: "Outstanding Credit", 
-            value: `Rs. ${stats.outstandingCredit.toLocaleString()}`, 
-            icon: TrendingUp, 
-            change: stats.outstandingCredit > 10000 ? "Review needed" : "Within limit" 
+        {
+            label: "Outstanding Credit",
+            value: `Rs. ${stats.outstandingCredit.toLocaleString()}`,
+            icon: TrendingUp,
+            change: stats.outstandingCredit > 10000 ? "Review needed" : "Within limit"
         },
     ];
 
@@ -94,7 +93,7 @@ function AdminDashboard() {
                 <PageHeader title="Admin Dashboard" description="Real-time overview of your workshop's operations." />
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
                     <p className="text-red-600">{error}</p>
-                    <button 
+                    <button
                         onClick={fetchDashboardData}
                         className="mt-4 px-4 py-2 bg-primary text-white rounded-md flex items-center gap-2 mx-auto"
                     >
@@ -105,14 +104,14 @@ function AdminDashboard() {
             </div>
         );
     }
-    console.log("Monthly revenue data:", monthlyRevenue);
+
     return (
         <div>
-            <PageHeader 
-                title="Admin Dashboard" 
+            <PageHeader
+                title="Admin Dashboard"
                 description="Real-time overview of your workshop's operations."
                 actions={
-                    <button 
+                    <button
                         onClick={fetchDashboardData}
                         className="px-3 py-2 rounded-md border border-border hover:bg-surface flex items-center gap-2 text-sm"
                     >
@@ -135,7 +134,7 @@ function AdminDashboard() {
                                     <div className="text-xs text-muted-foreground mt-1">{s.change}</div>
                                 </div>
                                 <div className="h-9 w-9 rounded-md bg-surface flex items-center justify-center">
-                                    <Icon className="h-4 w-4"/>
+                                    <Icon className="h-4 w-4" />
                                 </div>
                             </div>
                         </div>
@@ -153,11 +152,11 @@ function AdminDashboard() {
                             <div className="text-xs text-muted-foreground">Last {monthlyRevenue.length} months</div>
                         </div>
                         <div className="flex gap-3 text-xs">
-                            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary"/> Revenue</span>
-                            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground"/> Expenses</span>
+                            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /> Revenue</span>
+                            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> Expenses</span>
                         </div>
                     </div>
-                    
+
                     {monthlyRevenue.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                             No revenue data available
@@ -165,7 +164,10 @@ function AdminDashboard() {
                     ) : (
                         <div className="flex gap-2">
                             {/* Y-Axis Labels */}
-                            <div className="flex flex-col justify-between text-xs text-muted-foreground text-right pr-2" style={{ height: '192px' }}>
+                            <div
+                                className="flex flex-col justify-between text-xs text-muted-foreground text-right pr-2 shrink-0"
+                                style={{ height: `${CHART_HEIGHT}px` }}
+                            >
                                 {[100, 75, 50, 25, 0].map((pct) => (
                                     <span key={pct}>
                                         {pct === 0 ? '0' : `${Math.round((maxRev * pct) / 100).toLocaleString()}`}
@@ -173,29 +175,41 @@ function AdminDashboard() {
                                 ))}
                             </div>
 
-                            {/* Chart Bars */}
-                            <div className="flex-1 relative">
-                                {/* Gridlines */}
-                                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none" style={{ height: '192px' }}>
-                                    {[100, 75, 50, 25, 0].map((pct) => (
-                                        <div key={pct} className="border-t border-border w-full" />
-                                    ))}
+                            {/* Chart Area */}
+                            <div className="flex-1 flex flex-col" style={{ height: `${CHART_HEIGHT}px` }}>
+                                {/* Bars + Gridlines wrapper */}
+                                <div className="relative flex-1" style={{ height: `${CHART_HEIGHT}px` }}>
+                                    {/* Gridlines — absolutely behind bars */}
+                                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                                        {[100, 75, 50, 25, 0].map((pct) => (
+                                            <div key={pct} className="border-t border-border w-full" />
+                                        ))}
+                                    </div>
+
+                                    {/* Bars row — absolutely fills same space */}
+                                    <div className="absolute inset-0 flex items-end gap-4 px-1">
+                                        {monthlyRevenue.map((m) => (
+                                            <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full">
+                                                <div className="w-full flex items-end gap-1 h-full">
+                                                    <div
+                                                        className="flex-1 bg-primary rounded-t transition-all duration-500"
+                                                        style={{ height: `${(m.revenue / maxRev) * 100}%` }}
+                                                    />
+                                                    <div
+                                                        className="flex-1 bg-muted-foreground/40 rounded-t transition-all duration-500"
+                                                        style={{ height: `${(m.expenses / maxRev) * 100}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
 
-                                <div className="flex items-end gap-4" style={{ height: '192px' }}>
+                                {/* Month labels below bars */}
+                                <div className="flex gap-4 px-1 mt-2">
                                     {monthlyRevenue.map((m) => (
-                                        <div key={m.month} className="flex-1 flex flex-col items-center gap-2">
-                                            <div className="w-full flex items-end gap-1" style={{ height: '192px' }}>
-                                                <div
-                                                    className="flex-1 bg-primary rounded-t transition-all duration-500"
-                                                    style={{ height: `${(m.revenue / maxRev) * 100}%` }}
-                                                />
-                                                <div
-                                                    className="flex-1 bg-muted-foreground/40 rounded-t transition-all duration-500"
-                                                    style={{ height: `${(m.expenses / maxRev) * 100}%` }}
-                                                />
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">{m.month}</div>
+                                        <div key={m.month} className="flex-1 text-center text-xs text-muted-foreground">
+                                            {m.month}
                                         </div>
                                     ))}
                                 </div>
@@ -207,7 +221,7 @@ function AdminDashboard() {
                 {/* Alerts */}
                 <div className="bg-card border border-border rounded-lg p-6">
                     <div className="font-display font-semibold mb-4 flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-warning"/> Alerts
+                        <AlertTriangle className="h-4 w-4 text-warning" /> Alerts
                     </div>
                     <div className="space-y-3 max-h-80 overflow-y-auto">
                         {alerts.length === 0 ? (
@@ -260,8 +274,8 @@ function AdminDashboard() {
                                         </td>
                                         <td className="px-6 py-3 text-right">
                                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs ${
-                                                sale.paymentStatus === "Completed" 
-                                                    ? "bg-success/10 text-success" 
+                                                sale.paymentStatus === "Completed"
+                                                    ? "bg-success/10 text-success"
                                                     : "bg-warning/20 text-warning-foreground"
                                             }`}>
                                                 {sale.paymentStatus === "Completed" ? "Paid" : sale.paymentStatus}
