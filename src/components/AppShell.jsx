@@ -419,12 +419,7 @@ function NotifDropdown({
                         <div className="truncate text-sm font-medium">{n.title}</div>
                       </div>
                       <div className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatTime(n.createdAt)}
-                        {formatTime
-                          ? formatTime(n.createdAt)
-                          : n.createdAt
-                            ? new Date(n.createdAt).toLocaleString()
-                            : ""}
+                        {formatTime ? formatTime(n.createdAt) : n.createdAt ? new Date(n.createdAt).toLocaleString() : ""}
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">{n.message}</div>

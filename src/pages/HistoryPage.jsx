@@ -389,13 +389,13 @@ function HistoryPage() {
                                             <tr key={idx} className="border-t border-border">
                                                 <td className="px-3 py-2">{item.partName || `Item ${idx + 1}`}</td>
                                                 <td className="px-3 py-2 text-right">{item.quantity}</td>
-                                                <td className="px-3 py-2 text-right">रु {item.unitPrice?.toLocaleString()}</td>
-                                                <td className="px-3 py-2 text-right font-medium">रु {(item.quantity * item.unitPrice).toLocaleString()}</td>
+                                                <td className="px-3 py-2 text-right">NPR {item.unitPrice?.toLocaleString()}</td>
+                                                <td className="px-3 py-2 text-right font-medium">NPR {(item.quantity * item.unitPrice).toLocaleString()}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                     <tfoot className="border-t-2 border-border bg-surface/50">
-                                        <tr><td colSpan={3} className="px-3 py-2 text-right font-semibold">Total</td><td className="px-3 py-2 text-right font-bold">रु {viewingOrder.salesAmount?.toLocaleString()}</td></tr>
+                                        <tr><td colSpan={3} className="px-3 py-2 text-right font-semibold">Total</td><td className="px-3 py-2 text-right font-bold">NPR {viewingOrder.salesAmount?.toLocaleString()}</td></tr>
                                     </tfoot>
                                 </table>
                             </div>
